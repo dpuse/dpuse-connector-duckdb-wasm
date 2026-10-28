@@ -1,0 +1,2007 @@
+{
+  "metadata": {
+    "version": "0.14.0",
+    "generatedAt": "2026-10-28T17:24:58.039Z",
+    "integration": "vite",
+    "sources": false,
+    "gzip": true,
+    "brotli": false
+  },
+  "resources": [
+    {
+      "kind": "sourcemap",
+      "name": "[unassigned]",
+      "type": "other",
+      "format": "other",
+      "uncompressed": 0,
+      "parent": null
+    },
+    {
+      "kind": "chunk",
+      "name": "[unassigned]",
+      "type": "other",
+      "format": "other",
+      "uncompressed": 18500,
+      "gzip": 1187,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "config.json",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2118
+    },
+    {
+      "kind": "asset",
+      "name": "dist/dpuse-connector-duckdb-wasm.es.js",
+      "type": "script",
+      "uncompressed": 264099,
+      "gzip": 56180,
+      "brotli": 0
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/@dpuse/dpuse-shared/dist/dpuse-shared.es.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 60778
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/@dpuse/dpuse-shared/dist/dpuse-shared.es.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 8795,
+      "gzip": 2056,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/@duckdb/duckdb-wasm/dist/duckdb-browser.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 32920
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/@duckdb/duckdb-wasm/dist/duckdb-browser.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 25088,
+      "gzip": 4767,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/Arrow.dom.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4210
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/Arrow.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5256
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 13534
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/binary.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2076
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/bool.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1173
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/buffer.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4872
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/date.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1335
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/decimal.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1062
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/dictionary.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3493
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/duration.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1763
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/fixedsizebinary.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1102
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/fixedsizelist.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1605
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/float.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1423
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/int.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1545
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/interval.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1413
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/largebinary.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2102
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/largeutf8.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1758
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/list.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2062
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/map.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2392
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/null.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1100
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/struct.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1957
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/time.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1663
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/timestamp.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1788
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/union.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3350
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/utf8.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1728
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/builder/valid.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2295
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/data.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 19496
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/data.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 8814,
+      "gzip": 1435,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/enum.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5635
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/enum.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2022,
+      "gzip": 471,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/factories.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 10752
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/binary.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1031
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/binary.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 548,
+      "gzip": 186,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/block.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1228
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/block.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 495,
+      "gzip": 187,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/body-compression-method.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1053
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/body-compression-method.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 61,
+      "gzip": 56,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/body-compression.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2303
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/body-compression.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1008,
+      "gzip": 291,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/bool.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 975
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/bool.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 534,
+      "gzip": 184,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/buffer.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1398
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/buffer.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 393,
+      "gzip": 158,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/compression-type.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 350
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/compression-type.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 95,
+      "gzip": 74,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/date-unit.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 289
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/date-unit.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 97,
+      "gzip": 75,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/date.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1680
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/date.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 735,
+      "gzip": 248,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/decimal.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2419
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/decimal.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1114,
+      "gzip": 291,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/dictionary-batch.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2329
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/dictionary-batch.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1044,
+      "gzip": 299,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/dictionary-encoding.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3076
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/dictionary-encoding.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1270,
+      "gzip": 337,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/dictionary-kind.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 567
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/dictionary-kind.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 73,
+      "gzip": 63,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/duration.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1386
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/duration.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 761,
+      "gzip": 249,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/endianness.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 427
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/endianness.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 83,
+      "gzip": 69,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/field-node.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1647
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/field-node.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 399,
+      "gzip": 164,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/field.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4759
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/field.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2497,
+      "gzip": 488,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/fixed-size-binary.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1488
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/fixed-size-binary.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 801,
+      "gzip": 250,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/fixed-size-list.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1458
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/fixed-size-list.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 784,
+      "gzip": 244,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/floating-point.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1481
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/floating-point.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 797,
+      "gzip": 254,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/footer.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4103
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/footer.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2377,
+      "gzip": 472,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/int.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1572
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/int.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 907,
+      "gzip": 277,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/interval-unit.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 406
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/interval-unit.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 149,
+      "gzip": 92,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/interval.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1400
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/interval.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 761,
+      "gzip": 251,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/key-value.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1903
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/key-value.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 925,
+      "gzip": 266,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/large-binary.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1173
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/large-binary.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 583,
+      "gzip": 191,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/large-list.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1145
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/large-utf8.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1145
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/large-utf8.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 569,
+      "gzip": 189,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/list.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 975
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/list.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 534,
+      "gzip": 184,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/map.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2399
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/map.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 722,
+      "gzip": 244,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/message-header.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2287
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/message-header.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 235,
+      "gzip": 117,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/message.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3699
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/message.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2092,
+      "gzip": 498,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/metadata-version.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1458
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/metadata-version.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 135,
+      "gzip": 84,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/null.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1045
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/null.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 534,
+      "gzip": 184,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/precision.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 340
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/precision.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 115,
+      "gzip": 79,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/record-batch.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3604
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/record-batch.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1654,
+      "gzip": 371,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/run-end-encoded.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1405
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/schema.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4794
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/schema.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2619,
+      "gzip": 502,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/sparse-matrix-compressed-axis.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 443
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/sparse-matrix-index-csx.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4387
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/sparse-tensor-index-coo.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4751
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/sparse-tensor-index-csf.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 6864
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/sparse-tensor-index.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1655
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/sparse-tensor.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4448
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/struct-.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1207
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/struct-.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 555,
+      "gzip": 186,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/tensor-dim.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1884
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/tensor.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4208
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/time-unit.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 411
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/time-unit.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 175,
+      "gzip": 88,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/time.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2401
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/time.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 922,
+      "gzip": 283,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/timestamp.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 7404
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/timestamp.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 952,
+      "gzip": 288,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/type.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5295
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/type.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 746,
+      "gzip": 246,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/union-mode.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 292
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/union-mode.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 89,
+      "gzip": 69,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/union.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2751
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/union.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1488,
+      "gzip": 391,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/fb/utf8.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1014
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/fb/utf8.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 534,
+      "gzip": 186,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/io/adapters.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 13349
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/io/adapters.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4326,
+      "gzip": 1017,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/io/file.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5217
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/io/file.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2521,
+      "gzip": 572,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/io/interfaces.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4735
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/io/interfaces.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2492,
+      "gzip": 548,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/io/stream.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 6767
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/io/stream.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3229,
+      "gzip": 639,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/io/whatwg/builder.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4224
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/io/whatwg/iterable.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4340
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/io/whatwg/reader.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2418
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/io/whatwg/writer.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2193
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/ipc/message.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 11832
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/ipc/message.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4773,
+      "gzip": 1015,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/ipc/metadata/file.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5397
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/ipc/metadata/file.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2314,
+      "gzip": 566,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/ipc/metadata/json.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 7660
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/ipc/metadata/json.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2977,
+      "gzip": 765,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/ipc/metadata/message.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 20144
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/ipc/metadata/message.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 8635,
+      "gzip": 1909,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/ipc/reader.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 26497
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/ipc/reader.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 12709,
+      "gzip": 1988,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/ipc/serialization.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1890
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/ipc/serialization.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 97,
+      "gzip": 78,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/ipc/writer.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 17185
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/ipc/writer.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5890,
+      "gzip": 1394,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/recordbatch.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 12455
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/recordbatch.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4086,
+      "gzip": 1132,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/row/map.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4647
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/row/map.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2080,
+      "gzip": 602,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/row/struct.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4526
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/row/struct.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2133,
+      "gzip": 599,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/schema.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5767
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/schema.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2594,
+      "gzip": 737,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/table.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 13558
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/table.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4062,
+      "gzip": 1121,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/type.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 21632
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/type.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 11496,
+      "gzip": 1747,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/bigint.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1779
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/bigint.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 223,
+      "gzip": 132,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/bit.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5286
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/bit.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1774,
+      "gzip": 568,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/bn.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 7007
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/bn.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3320,
+      "gzip": 862,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/buffer.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 12253
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/buffer.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3163,
+      "gzip": 853,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/chunk.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5017
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/chunk.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1960,
+      "gzip": 592,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/compat.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3772
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/compat.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 893,
+      "gzip": 256,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/int.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 13439
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/int.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 6550,
+      "gzip": 999,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/math.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4215
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/math.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 748,
+      "gzip": 314,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/pretty.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1808
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/pretty.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 529,
+      "gzip": 223,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/recordbatch.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3534
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/recordbatch.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1004,
+      "gzip": 416,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/utf8.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 1065
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/utf8.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 105,
+      "gzip": 70,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/util/vector.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 6402
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/util/vector.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2261,
+      "gzip": 625,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/vector.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 15959
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/vector.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5745,
+      "gzip": 1339,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 13711
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/visitor.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 7540,
+      "gzip": 1080,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/builderctor.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5349
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/get.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 11321
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/visitor/get.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4917,
+      "gzip": 966,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/indexof.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 6228
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/visitor/indexof.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2380,
+      "gzip": 460,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/iterator.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5608
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/visitor/iterator.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2343,
+      "gzip": 474,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/jsontypeassembler.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3818
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/jsonvectorassembler.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5421
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/set.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 13349
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/visitor/set.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5953,
+      "gzip": 1110,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/typeassembler.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5719
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/visitor/typeassembler.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2349,
+      "gzip": 563,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/typecomparator.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 7953
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/visitor/typecomparator.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3945,
+      "gzip": 590,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/vectorassembler.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 9564
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/visitor/vectorassembler.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3264,
+      "gzip": 907,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/apache-arrow/visitor/vectorloader.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 10141
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/apache-arrow/visitor/vectorloader.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 6537,
+      "gzip": 788,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/flatbuffers/mjs/builder.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 18501
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/flatbuffers/mjs/builder.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 6320,
+      "gzip": 1293,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/flatbuffers/mjs/byte-buffer.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 8265
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/flatbuffers/mjs/byte-buffer.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 3430,
+      "gzip": 737,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/flatbuffers/mjs/constants.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 138
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/flatbuffers/mjs/encoding.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 195
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/flatbuffers/mjs/encoding.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 109,
+      "gzip": 75,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/flatbuffers/mjs/flatbuffers.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 401
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/flatbuffers/mjs/utils.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 237
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/flatbuffers/mjs/utils.js",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 174,
+      "gzip": 95,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "node_modules/tslib/tslib.es6.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 17648
+    },
+    {
+      "kind": "chunk",
+      "name": "node_modules/tslib/tslib.es6.mjs",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 2513,
+      "gzip": 657,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "src/duckdbSql.ts",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 9060
+    },
+    {
+      "kind": "chunk",
+      "name": "src/duckdbSql.ts",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 5500,
+      "gzip": 1447,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    },
+    {
+      "kind": "filesystem",
+      "name": "src/index.ts",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 8083
+    },
+    {
+      "kind": "chunk",
+      "name": "src/index.ts",
+      "type": "script",
+      "format": "esm",
+      "uncompressed": 4956,
+      "gzip": 1439,
+      "brotli": 0,
+      "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
+    }
+  ],
+  "connections": [
+    {
+      "kind": "entrypoint",
+      "source": "dist/dpuse-connector-duckdb-wasm.es.js",
+      "target": "src/index.ts",
+      "original": null
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "@dpuse/dpuse-shared",
+      "paths": [
+        "node_modules/@dpuse/dpuse-shared"
+      ]
+    },
+    {
+      "name": "@duckdb/duckdb-wasm",
+      "paths": [
+        "node_modules/@duckdb/duckdb-wasm"
+      ]
+    },
+    {
+      "name": "apache-arrow",
+      "paths": [
+        "node_modules/apache-arrow"
+      ]
+    },
+    {
+      "name": "flatbuffers",
+      "paths": [
+        "node_modules/flatbuffers"
+      ]
+    },
+    {
+      "name": "tslib",
+      "paths": [
+        "node_modules/tslib"
+      ]
+    }
+  ],
+  "issues": [],
+  "sourcemaps": []
+}
