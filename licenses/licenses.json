@@ -1,11 +1,39 @@
 {
-    "@dpuse/dpuse-shared@1.0.126": {
+    "@dpuse/dpuse-shared@1.0.160": {
         "licenses": "MIT",
         "repository": "https://github.com/dpuse/dpuse-shared",
         "publisher": "Jonathan Terrell",
         "email": "terrell.jm@gmail.com",
         "path": "node_modules/@dpuse/dpuse-shared",
-        "licenseFile": "downloads/@dpuse/dpuse-shared@1.0.126-LICENSE.txt"
+        "licenseFile": "downloads/@dpuse/dpuse-shared@1.0.160-LICENSE.txt"
+    },
+    "@duckdb/duckdb-wasm@1.33.1-dev110.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/duckdb/duckdb-wasm",
+        "path": "node_modules/@duckdb/duckdb-wasm",
+        "licenseFile": "downloads/@duckdb/duckdb-wasm@1.33.1-dev110.0-LICENSE.txt"
+    },
+    "apache-arrow@17.0.0": {
+        "licenses": "Apache-2.0",
+        "repository": "https://github.com/apache/arrow",
+        "publisher": "Apache Software Foundation",
+        "path": "node_modules/apache-arrow",
+        "licenseFile": "downloads/apache-arrow@17.0.0-LICENSE.txt",
+        "noticeFile": "node_modules/apache-arrow/NOTICE.txt"
+    },
+    "flatbuffers@24.12.23": {
+        "licenses": "Apache-2.0",
+        "repository": "https://github.com/google/flatbuffers",
+        "publisher": "The FlatBuffers project",
+        "path": "node_modules/flatbuffers",
+        "licenseFile": "downloads/flatbuffers@24.12.23-LICENSE.txt"
+    },
+    "tslib@2.8.1": {
+        "licenses": "0BSD",
+        "repository": "https://github.com/Microsoft/tslib",
+        "publisher": "Microsoft Corp.",
+        "path": "node_modules/tslib",
+        "licenseFile": "downloads/tslib@2.8.1-LICENSE.txt"
     },
     "valibot@1.5.0": {
         "licenses": "MIT",
