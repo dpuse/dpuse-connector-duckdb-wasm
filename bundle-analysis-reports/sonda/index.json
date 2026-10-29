@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "0.14.0",
-    "generatedAt": "2026-10-28T20:34:40.419Z",
+    "generatedAt": "2026-10-29T12:43:52.486Z",
     "integration": "vite",
     "sources": false,
     "gzip": true,
@@ -38,7 +38,7 @@
       "name": "dist/dpuse-connector-duckdb-wasm.es.js",
       "type": "script",
       "uncompressed": 264099,
-      "gzip": 56180,
+      "gzip": 56181,
       "brotli": 0
     },
     {

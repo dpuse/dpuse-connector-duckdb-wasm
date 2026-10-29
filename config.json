@@ -12,10 +12,7 @@
         "dropObject",
         "loadObjectRecords",
         "openStore",
-        "queryRecords",
-        "acquireLock",
-        "establishOpenStore",
-        "releaseHeldLock"
+        "queryRecords"
     ],
     "category": null,
     "categoryId": "database",
@@ -38,5 +35,5 @@
     "vendorAccountURL": null,
     "vendorDocumentationURL": "https://duckdb.org/docs/stable/clients/wasm/overview",
     "vendorHomeURL": "https://duckdb.org/",
-    "version": "1.0.1"
+    "version": "1.0.4"
 }

@@ -1,6 +1,6 @@
 {
     "name": "@dpuse/dpuse-connector-duckdb-wasm",
-    "version": "1.0.1",
+    "version": "1.0.4",
     "private": false,
     "description": "Stores data views for investigation in a DuckDB database saved in the browser (OPFS).",
     "license": "MIT",

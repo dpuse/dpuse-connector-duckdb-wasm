@@ -178,7 +178,7 @@ export class Connector implements ConnectorInterface {
 
     // Asks for the lock without waiting, so a tab that cannot have it is told at once. A request that fails, e.g. where
     // Web Locks are blocked, ends first and so rejects. The lock is held until 'releaseHeldLock' is called.
-    async acquireLock(): Promise<boolean> {
+    private async acquireLock(): Promise<boolean> {
         const lockAcquisition = Promise.withResolvers<boolean>();
         const lockRequest = navigator.locks.request(LOCK_NAME, { ifAvailable: true }, (lock) => {
             if (lock == null) {
@@ -197,12 +197,12 @@ export class Connector implements ConnectorInterface {
         return await Promise.race([lockAcquisition.promise, endedRequest]);
     }
 
-    establishOpenStore(): OpenStore {
+    private establishOpenStore(): OpenStore {
         if (!this.openStoreState) throw new Error('The store is not open.');
         return this.openStoreState;
     }
 
-    releaseHeldLock(): void {
+    private releaseHeldLock(): void {
         this.releaseLock?.();
         this.releaseLock = undefined;
     }
