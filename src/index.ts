@@ -273,6 +273,7 @@ async function startDuckDB(): Promise<OpenStore> {
 const policy = self.trustedTypes?.createPolicy(${policyName}, { createScriptURL: (candidate) => { if (candidate !== url) throw new Error('Blocked TrustedScriptURL: ' + candidate); return candidate; } });
 importScripts(policy ? policy.createScriptURL(url) : url);`;
     const blobURL = URL.createObjectURL(new Blob([bootstrapScript], { type: 'text/javascript' }));
+    // eslint-disable-next-line n/no-unsupported-features/node-builtins -- This is the browser's 'Worker', not Node's experimental one.
     const worker = new Worker((workerScriptURLPolicy?.createScriptURL(blobURL) ?? blobURL) as string);
     const database = new AsyncDuckDB(new VoidLogger(), worker);
     // DuckDB waits for ever when its worker fails to start, so a worker error ends the start instead.

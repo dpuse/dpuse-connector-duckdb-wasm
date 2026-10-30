@@ -2,17 +2,7 @@
 import { Bool, Float64, makeData, makeVector, Table, Utf8, type Vector } from 'apache-arrow';
 
 // ── DPUse Framework
-import type {
-    DataSubtypeId,
-    DataTypeId,
-    ObjectColumnConfig,
-    QueryAggregate,
-    QueryFilter,
-    QueryRecordsOptions,
-    QuerySort,
-    StoreRecord,
-    StoreValue
-} from '@dpuse/dpuse-shared';
+import type { DataSubtypeId, DataTypeId, ObjectColumnConfig, QueryAggregate, QueryFilter, QueryRecordsOptions, QuerySort, StoreRecord, StoreValue } from '@dpuse/dpuse-shared';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -46,6 +36,8 @@ export const STAGING_TABLE = '_dpuse_staging';
 
 const LIKE_ESCAPE_SQL = String.raw`ESCAPE '\'`; // Lets a filter match '%' and '_' as written, not as wildcards.
 
+const MICROSECONDS_PER_MILLISECOND = 1000;
+
 // ── Actions ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 export function constructStoredColumns(columnConfigs: ObjectColumnConfig[]): StoredColumn[] {
@@ -59,17 +51,23 @@ export function constructCreateTableSql(path: string, storedColumns: StoredColum
 
 // Records go into DuckDB as Arrow columns. Each column is built straight from typed arrays, because Arrow's own builders
 // compile code at run time, which the app's Content Security Policy forbids. Dates go in as milliseconds and become
-// timestamps in 'constructStagedInsertSql'.
+// their column's type in 'constructStagedInsertSql'.
 export function constructArrowTable(records: StoreRecord[], storedColumns: StoredColumn[]): Table {
     const vectors = Object.fromEntries(
-        storedColumns.map((storedColumn, columnIndex) => [columnName(columnIndex), constructArrowVector(records.map((record) => record[columnIndex] ?? null), storedColumn)])
+        storedColumns.map((storedColumn, columnIndex) => [
+            columnName(columnIndex),
+            constructArrowVector(
+                records.map((record) => record[columnIndex] ?? null),
+                storedColumn
+            )
+        ])
     );
     return new Table(vectors);
 }
 
 export function constructStagedInsertSql(path: string, storedColumns: StoredColumn[]): string {
     const selections = storedColumns.map((storedColumn, columnIndex) =>
-        storedColumn.dataTypeId === 'temporal' ? `epoch_ms(CAST(${columnName(columnIndex)} AS BIGINT))` : columnName(columnIndex)
+        storedColumn.dataTypeId === 'temporal' ? constructTemporalSql(columnName(columnIndex), storedColumn) : columnName(columnIndex)
     );
     return `INSERT INTO ${quoteIdentifier(path)} SELECT ${selections.join(', ')} FROM ${STAGING_TABLE}`;
 }
@@ -90,11 +88,12 @@ export function constructStoreQuery(storedColumns: StoredColumn[], options: Quer
     return { countSql: `SELECT count(*) FROM (${baseSql})`, pageSql, resultColumns, values: whereParts.flatMap((part) => part.values) };
 }
 
-// Timestamps come back from Arrow as milliseconds since 1970, and counts as bigints.
+// Dates and timestamps come back from Arrow as milliseconds since 1970, times as bigint microseconds since midnight, and
+// counts as bigints.
 // eslint-disable-next-line sonarjs/function-return-type -- A store value is one of several types, by its column.
 export function fromStoredValue(value: unknown, storedColumn: StoredColumn | undefined): StoreValue {
     if (value == null) return null;
-    if (storedColumn?.dataTypeId === 'temporal') return new Date(Number(value));
+    if (storedColumn?.dataTypeId === 'temporal') return new Date(typeof value === 'bigint' ? Number(value) / MICROSECONDS_PER_MILLISECOND : Number(value));
     if (typeof value === 'bigint') return Number(value);
     return typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string' ? value : null;
 }
@@ -189,10 +188,17 @@ function constructAggregateSql(aggregate: QueryAggregate): string {
     }
 }
 
-// Text matches ignore case, as SQLite's do. A date is passed as milliseconds and turned back into a timestamp.
+// Milliseconds since 1970 as the column's own date type.
+function constructTemporalSql(millisecondsSql: string, storedColumn: StoredColumn | undefined): string {
+    const timestampSql = `epoch_ms(CAST(${millisecondsSql} AS BIGINT))`;
+    if (storedColumn?.dataSubtypeId === 'date') return `CAST(${timestampSql} AS DATE)`;
+    return storedColumn?.dataSubtypeId === 'time' ? `CAST(${timestampSql} AS TIME)` : timestampSql;
+}
+
+// Text matches ignore case, as SQLite's do. A date is passed as milliseconds and turned back into its column's type.
 function constructFilterSql(filter: QueryFilter, storedColumns: StoredColumn[]): { sql: string; values: QueryValue[] } {
     const name = columnName(checkIndex(filter.columnIndex, storedColumns.length));
-    const valueSql = filter.value instanceof Date ? 'epoch_ms(CAST(? AS BIGINT))' : '?';
+    const valueSql = filter.value instanceof Date ? constructTemporalSql('?', storedColumns[filter.columnIndex]) : '?';
     const value = toQueryValue(filter.value);
     const text = escapeLikeText(String(filter.value ?? ''));
     switch (filter.operatorId) {
@@ -242,12 +248,15 @@ function constructOrderSql(sorts: QuerySort[], resultColumnCount: number): strin
 }
 
 function escapeLikeText(text: string): string {
-    return text.replaceAll('\\', '\\\\').replaceAll('%', String.raw`\%`).replaceAll('_', String.raw`\_`);
+    return text
+        .replaceAll('\\', '\\\\')
+        .replaceAll('%', String.raw`\%`)
+        .replaceAll('_', String.raw`\_`);
 }
 
 function setBit(bitmap: Uint8Array, index: number): void {
     const byteIndex = Math.floor(index / 8);
-    bitmap[byteIndex] = (bitmap[byteIndex] ?? 0) | (1 << index % 8);
+    bitmap[byteIndex] = (bitmap[byteIndex] ?? 0) | (1 << (index % 8));
 }
 
 // Every number is stored as a double, so a value too large for one loses precision.
@@ -258,11 +267,16 @@ function resolveColumnType(storedColumn: StoredColumn): string {
         case 'numeric':
             return 'DOUBLE';
         case 'temporal':
-            return 'TIMESTAMP';
+            return resolveTemporalColumnType(storedColumn);
         case 'string':
         case 'unknown':
             return 'VARCHAR'; // Every value of a column with no audited type is null.
     }
+}
+
+function resolveTemporalColumnType(storedColumn: StoredColumn): string {
+    if (storedColumn.dataSubtypeId === 'date') return 'DATE';
+    return storedColumn.dataSubtypeId === 'time' ? 'TIME' : 'TIMESTAMP';
 }
 
 // eslint-disable-next-line sonarjs/function-return-type -- A bound value is one of several types, by its column.

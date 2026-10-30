@@ -25,7 +25,7 @@ function constructQuery(options: Partial<QueryRecordsOptions>): QueryRecordsOpti
 
 describe('constructCreateTableSql', () => {
     it('creates a column of the audited type for each column, named by position', () => {
-        expect(constructCreateTableSql('my "view"', STORED_COLUMNS)).toBe('CREATE TABLE "my ""view""" (c0 VARCHAR, c1 DOUBLE, c2 BOOLEAN, c3 TIMESTAMP, c4 VARCHAR)');
+        expect(constructCreateTableSql('my "view"', STORED_COLUMNS)).toBe('CREATE TABLE "my ""view""" (c0 VARCHAR, c1 DOUBLE, c2 BOOLEAN, c3 DATE, c4 VARCHAR)');
     });
 });
 
@@ -52,8 +52,8 @@ describe('constructArrowTable', () => {
 });
 
 describe('constructStagedInsertSql', () => {
-    it('turns staged milliseconds back into timestamps', () => {
-        expect(constructStagedInsertSql('sales', STORED_COLUMNS)).toBe('INSERT INTO "sales" SELECT c0, c1, c2, epoch_ms(CAST(c3 AS BIGINT)), c4 FROM _dpuse_staging');
+    it('turns staged milliseconds back into the column’s date type', () => {
+        expect(constructStagedInsertSql('sales', STORED_COLUMNS)).toBe('INSERT INTO "sales" SELECT c0, c1, c2, CAST(epoch_ms(CAST(c3 AS BIGINT)) AS DATE), c4 FROM _dpuse_staging');
     });
 });
 
@@ -74,10 +74,12 @@ describe('constructStoreQuery', () => {
         );
 
         expect(storeQuery.pageSql).toBe(
-            String.raw`SELECT c0, c1, c2, c3, c4 FROM "sales" WHERE c0 ILIKE ? ESCAPE '\' AND c3 > epoch_ms(CAST(? AS BIGINT)) AND c2 IS NULL ORDER BY 2 DESC NULLS LAST LIMIT 10 OFFSET 20`
+            String.raw`SELECT c0, c1, c2, c3, c4 FROM "sales" WHERE c0 ILIKE ? ESCAPE '\' AND c3 > CAST(epoch_ms(CAST(? AS BIGINT)) AS DATE) AND c2 IS NULL ORDER BY 2 DESC NULLS LAST LIMIT 10 OFFSET 20`
         );
         expect(storeQuery.values).toEqual([String.raw`%50\%\_off%`, 1000]);
-        expect(storeQuery.countSql).toBe(String.raw`SELECT count(*) FROM (SELECT c0, c1, c2, c3, c4 FROM "sales" WHERE c0 ILIKE ? ESCAPE '\' AND c3 > epoch_ms(CAST(? AS BIGINT)) AND c2 IS NULL)`);
+        expect(storeQuery.countSql).toBe(
+            String.raw`SELECT count(*) FROM (SELECT c0, c1, c2, c3, c4 FROM "sales" WHERE c0 ILIKE ? ESCAPE '\' AND c3 > CAST(epoch_ms(CAST(? AS BIGINT)) AS DATE) AND c2 IS NULL)`
+        );
     });
 
     it('groups, with aggregates after the group values', () => {
@@ -106,6 +108,7 @@ describe('constructStoreQuery', () => {
 describe('fromStoredValue', () => {
     it('returns dates for timestamps and numbers for counts', () => {
         expect(fromStoredValue(1000, STORED_COLUMNS[3])).toEqual(new Date(1000));
+        expect(fromStoredValue(36_672_123_000n, { dataSubtypeId: 'time', dataTypeId: 'temporal' })).toEqual(new Date(36_672_123));
         expect(fromStoredValue(5n, undefined)).toBe(5);
         expect(fromStoredValue(null, STORED_COLUMNS[0])).toBeNull();
         expect(fromStoredValue(true, STORED_COLUMNS[2])).toBe(true);

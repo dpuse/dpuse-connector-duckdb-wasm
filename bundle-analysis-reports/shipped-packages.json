@@ -1,6 +1,6 @@
 {
     "packages": [
-        "@dpuse/dpuse-shared@1.0.160",
+        "@dpuse/dpuse-shared@1.0.165",
         "@duckdb/duckdb-wasm@1.33.1-dev110.0",
         "apache-arrow@17.0.0",
         "flatbuffers@24.12.23",
