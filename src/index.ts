@@ -1,4 +1,10 @@
 // ── External Dependencies & Registrations
+// TODO: Review both pinned versions in 'package.json' regularly. '.ncurc.json' rejects them, so the usual dependency
+// update never raises them. '@duckdb/duckdb-wasm' is pinned forward to 1.33.1-dev110.0, npm's 'next', because 'latest'
+// (1.33.1-dev57.0) was found not to write to the browser's private file system. Move to 'latest' once it includes that.
+// 'apache-arrow' is pinned to 17.0.0 because DuckDB requires ^17.0.0, so it can only move when DuckDB moves.
+// Each review looks for security fixes in both packages and for a supported production release of DuckDB, then moves the
+// pins and runs 'tests/duckdbSql.roundTrip.test.ts'.
 import type { Table } from 'apache-arrow';
 import { AsyncDuckDB, type AsyncDuckDBConnection, DuckDBAccessMode, VoidLogger } from '@duckdb/duckdb-wasm';
 
