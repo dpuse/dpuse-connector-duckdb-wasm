@@ -1,5 +1,5 @@
 // ── External Dependencies & Registrations
-import { Bool, Float64, makeData, makeVector, Table, Utf8, type Vector } from 'apache-arrow';
+import { Bool, Float64, Int64, makeData, makeVector, Table, Utf8, type Vector } from 'apache-arrow';
 
 // ── DPUse Framework
 import type { DataSubtypeId, DataTypeId, ObjectColumnConfig, QueryAggregate, QueryFilter, QueryRecordsOptions, QuerySort, StoreRecord, StoreValue } from '@dpuse/dpuse-shared';
@@ -76,7 +76,7 @@ export function constructStoreQuery(storedColumns: StoredColumn[], options: Quer
     const isGrouped = options.groupColumnIndexes.length > 0;
     const resultColumns = isGrouped ? constructGroupedResultColumns(storedColumns, options) : storedColumns;
     const selections = isGrouped
-        ? [...options.groupColumnIndexes.map((columnIndex) => columnName(columnIndex)), ...options.aggregates.map((aggregate) => constructAggregateSql(aggregate))]
+        ? [...options.groupColumnIndexes.map((columnIndex) => columnName(columnIndex)), ...options.aggregates.map((aggregate) => constructAggregateSql(aggregate, storedColumns))]
         : storedColumns.map((_storedColumn, columnIndex) => columnName(columnIndex));
 
     const whereParts = options.filters.map((filter) => constructFilterSql(filter, storedColumns));
@@ -89,12 +89,13 @@ export function constructStoreQuery(storedColumns: StoredColumn[], options: Quer
 }
 
 // Dates and timestamps come back from Arrow as milliseconds since 1970, times as bigint microseconds since midnight, and
-// counts as bigints.
+// whole numbers and counts as bigints. A column of whole numbers beyond ±2^53 keeps its bigints, so no digit is lost.
+// Other whole numbers become plain numbers, unless one is too large to be exact.
 // eslint-disable-next-line sonarjs/function-return-type -- A store value is one of several types, by its column.
 export function fromStoredValue(value: unknown, storedColumn: StoredColumn | undefined): StoreValue {
     if (value == null) return null;
     if (storedColumn?.dataTypeId === 'temporal') return new Date(typeof value === 'bigint' ? Number(value) / MICROSECONDS_PER_MILLISECOND : Number(value));
-    if (typeof value === 'bigint') return Number(value);
+    if (typeof value === 'bigint') return storedColumn?.dataSubtypeId === 'bigint' || !isSafeBigInt(value) ? value : Number(value);
     return typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string' ? value : null;
 }
 
@@ -120,6 +121,9 @@ function constructArrowVector(values: StoreValue[], storedColumn: StoredColumn):
         case 'boolean':
             return makeVector(makeData({ data: constructBooleanData(presentValues, length), length, nullBitmap, nullCount, type: new Bool() }));
         case 'numeric':
+            return isWholeNumberColumn(storedColumn)
+                ? makeVector(makeData({ data: constructWholeNumberData(presentValues, length), length, nullBitmap, nullCount, type: new Int64() }))
+                : makeVector(makeData({ data: constructNumberData(presentValues, length), length, nullBitmap, nullCount, type: new Float64() }));
         case 'temporal':
             return makeVector(makeData({ data: constructNumberData(presentValues, length), length, nullBitmap, nullCount, type: new Float64() }));
         case 'string':
@@ -133,6 +137,13 @@ function constructArrowVector(values: StoreValue[], storedColumn: StoredColumn):
 function constructBooleanData(presentValues: PresentValue[], length: number): Uint8Array {
     const data = new Uint8Array(Math.ceil(length / 8));
     for (const { index, value } of presentValues) if (value === true) setBit(data, index);
+    return data;
+}
+
+// The engine only gives a column of whole numbers whole values within 64 bits, so each fits exactly.
+function constructWholeNumberData(presentValues: PresentValue[], length: number): BigInt64Array {
+    const data = new BigInt64Array(length);
+    for (const { index, value } of presentValues) data[index] = typeof value === 'bigint' ? value : BigInt(Number(value));
     return data;
 }
 
@@ -170,10 +181,13 @@ function columnName(columnIndex: number): string {
     return `c${String(columnIndex)}`;
 }
 
-function constructAggregateSql(aggregate: QueryAggregate): string {
+// DuckDB adds up 64-bit whole numbers as 128-bit ones, which Arrow returns in a form the store cannot read. The sum is
+// turned back into a 64-bit whole number, and one too large for that is null rather than an error.
+function constructAggregateSql(aggregate: QueryAggregate, storedColumns: StoredColumn[]): string {
     if (aggregate.functionId === 'count') return 'count(*)';
     if (aggregate.columnIndex == null) throw new Error(`Aggregate '${aggregate.functionId}' needs a column.`);
     const name = columnName(aggregate.columnIndex);
+    const storedColumn = storedColumns[aggregate.columnIndex];
     switch (aggregate.functionId) {
         case 'average':
             return `avg(${name})`;
@@ -184,7 +198,7 @@ function constructAggregateSql(aggregate: QueryAggregate): string {
         case 'minimum':
             return `min(${name})`;
         case 'sum':
-            return `sum(${name})`;
+            return storedColumn != null && isWholeNumberColumn(storedColumn) ? `TRY_CAST(sum(${name}) AS BIGINT)` : `sum(${name})`;
     }
 }
 
@@ -196,9 +210,10 @@ function constructTemporalSql(millisecondsSql: string, storedColumn: StoredColum
 }
 
 // Text matches ignore case, as SQLite's do. A date is passed as milliseconds and turned back into its column's type.
+// DuckDB passes values as JSON, which has no bigints, so a bigint is passed as text and turned back into a whole number.
 function constructFilterSql(filter: QueryFilter, storedColumns: StoredColumn[]): { sql: string; values: QueryValue[] } {
     const name = columnName(checkIndex(filter.columnIndex, storedColumns.length));
-    const valueSql = filter.value instanceof Date ? constructTemporalSql('?', storedColumns[filter.columnIndex]) : '?';
+    const valueSql = constructFilterValueSql(filter.value, storedColumns[filter.columnIndex]);
     const value = toQueryValue(filter.value);
     const text = escapeLikeText(String(filter.value ?? ''));
     switch (filter.operatorId) {
@@ -259,13 +274,15 @@ function setBit(bitmap: Uint8Array, index: number): void {
     bitmap[byteIndex] = (bitmap[byteIndex] ?? 0) | (1 << (index % 8));
 }
 
-// Every number is stored as a double, so a value too large for one loses precision.
+// Whole numbers are stored as 64-bit integers, so every one the engine reads as a number is exact. 'BIGINT' rather than
+// the smallest type that fits, because a partial audit can miss larger values, and DuckDB compresses small values in a
+// 'BIGINT' column anyway. Other numbers are doubles, which hold any value written with up to 17 significant digits.
 function resolveColumnType(storedColumn: StoredColumn): string {
     switch (storedColumn.dataTypeId) {
         case 'boolean':
             return 'BOOLEAN';
         case 'numeric':
-            return 'DOUBLE';
+            return isWholeNumberColumn(storedColumn) ? 'BIGINT' : 'DOUBLE';
         case 'temporal':
             return resolveTemporalColumnType(storedColumn);
         case 'string':
@@ -279,8 +296,21 @@ function resolveTemporalColumnType(storedColumn: StoredColumn): string {
     return storedColumn.dataSubtypeId === 'time' ? 'TIME' : 'TIMESTAMP';
 }
 
+function constructFilterValueSql(value: StoreValue, storedColumn: StoredColumn | undefined): string {
+    if (value instanceof Date) return constructTemporalSql('?', storedColumn);
+    return typeof value === 'bigint' ? 'CAST(? AS BIGINT)' : '?';
+}
+
+function isSafeBigInt(value: bigint): boolean {
+    return value >= BigInt(Number.MIN_SAFE_INTEGER) && value <= BigInt(Number.MAX_SAFE_INTEGER);
+}
+
+function isWholeNumberColumn(storedColumn: StoredColumn): boolean {
+    return storedColumn.dataSubtypeId === 'integer' || storedColumn.dataSubtypeId === 'bigint';
+}
+
 // eslint-disable-next-line sonarjs/function-return-type -- A bound value is one of several types, by its column.
 function toQueryValue(value: StoreValue): QueryValue {
     if (value instanceof Date) return value.getTime();
-    return typeof value === 'bigint' ? Number(value) : value;
+    return typeof value === 'bigint' ? String(value) : value;
 }

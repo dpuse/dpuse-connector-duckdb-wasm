@@ -25,7 +25,7 @@ function constructQuery(options: Partial<QueryRecordsOptions>): QueryRecordsOpti
 
 describe('constructCreateTableSql', () => {
     it('creates a column of the audited type for each column, named by position', () => {
-        expect(constructCreateTableSql('my "view"', STORED_COLUMNS)).toBe('CREATE TABLE "my ""view""" (c0 VARCHAR, c1 DOUBLE, c2 BOOLEAN, c3 DATE, c4 VARCHAR)');
+        expect(constructCreateTableSql('my "view"', STORED_COLUMNS)).toBe('CREATE TABLE "my ""view""" (c0 VARCHAR, c1 BIGINT, c2 BOOLEAN, c3 DATE, c4 VARCHAR)');
     });
 });
 
@@ -44,7 +44,7 @@ describe('constructArrowTable', () => {
 
         expect(table.numRows).toBe(3);
         expect(columnValues(0)).toEqual(['Ünïcode', null, '']);
-        expect(columnValues(1)).toEqual([3, null, 2]);
+        expect(columnValues(1)).toEqual([3n, null, 2n]); // Whole numbers go in as 64-bit integers.
         expect(columnValues(2)).toEqual([true, false, null]);
         expect(columnValues(3)).toEqual([date.getTime(), null, date.getTime()]);
         expect(columnValues(4)).toEqual([null, null, null]);

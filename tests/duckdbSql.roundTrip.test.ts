@@ -57,16 +57,16 @@ function constructTemporalRecord(dayNumber: number, timeOfDay: number): StoreRec
     return [new Date(dayNumber * DAY), new Date(timeOfDay), new Date(dayNumber * DAY + timeOfDay)];
 }
 
-function load(records: StoreRecord[]): void {
-    connection.query('DROP TABLE IF EXISTS dates');
-    connection.query(constructCreateTableSql('dates', STORED_COLUMNS));
-    connection.insertArrowFromIPCStream(tableToIPC(constructArrowTable(records, STORED_COLUMNS), 'stream'), { create: true, name: STAGING_TABLE });
-    connection.query(constructStagedInsertSql('dates', STORED_COLUMNS));
+function load(records: StoreRecord[], storedColumns = STORED_COLUMNS, path = 'dates'): void {
+    connection.query(`DROP TABLE IF EXISTS ${path}`);
+    connection.query(constructCreateTableSql(path, storedColumns));
+    connection.insertArrowFromIPCStream(tableToIPC(constructArrowTable(records, storedColumns), 'stream'), { create: true, name: STAGING_TABLE });
+    connection.query(constructStagedInsertSql(path, storedColumns));
     connection.query(`DROP TABLE ${STAGING_TABLE}`);
 }
 
-function query(options: Partial<QueryRecordsOptions>): StoreRecord[] {
-    const { pageSql, resultColumns, values } = constructStoreQuery(STORED_COLUMNS, {
+function query(options: Partial<QueryRecordsOptions>, storedColumns = STORED_COLUMNS): StoreRecord[] {
+    const { pageSql, resultColumns, values } = constructStoreQuery(storedColumns, {
         aggregates: [],
         filters: [],
         groupColumnIndexes: [],
@@ -141,5 +141,51 @@ describe('duckdbSql temporal round trip', () => {
         connection.query("CREATE TABLE dates AS SELECT TIMESTAMP '2024-03-04' AS c0, TIMESTAMP '1970-01-01 10:11:12.123' AS c1, TIMESTAMP '2024-03-04 10:11:12' AS c2");
 
         expect(query({})).toEqual([[new Date('2024-03-04T00:00:00Z'), new Date('1970-01-01T10:11:12.123Z'), new Date('2024-03-04T10:11:12Z')]]);
+    });
+});
+
+describe('duckdbSql large number round trip', () => {
+    const numberColumns = constructStoredColumns([
+        { dataSubtypeId: 'bigint', dataTypeId: 'numeric' },
+        { dataSubtypeId: 'integer', dataTypeId: 'numeric' },
+        { dataSubtypeId: 'decimal', dataTypeId: 'numeric' }
+    ] as ObjectColumnConfig[]);
+    const records: StoreRecord[] = [
+        [9_223_372_036_854_775_807n, 1, 11.494704278406504],
+        [-9_223_372_036_854_775_808n, 2, 0.1],
+        [9_007_199_254_740_993n, 3, -2.5]
+    ];
+    const queryNumbers = (options: Partial<QueryRecordsOptions>): StoreRecord[] => query({ path: 'numbers', ...options }, numberColumns);
+
+    it('returns whole numbers beyond ±2^53 exactly as bigints, other whole numbers as numbers, and decimals at full precision', () => {
+        load(records, numberColumns, 'numbers');
+
+        const typeTable = connection.query('SELECT typeof(c0), typeof(c1), typeof(c2) FROM numbers LIMIT 1');
+        expect([0, 1, 2].map((columnIndex) => String(typeTable.getChildAt(columnIndex)?.get(0)))).toEqual(['BIGINT', 'BIGINT', 'DOUBLE']);
+        expect(queryNumbers({ sorts: [{ columnIndex: 0, directionId: 'ascending' }] })).toEqual([records[1], records[2], records[0]]);
+    });
+
+    it('filters on a whole number beyond ±2^53, and keeps it exact in a minimum or maximum', () => {
+        load(records, numberColumns, 'numbers');
+
+        expect(queryNumbers({ filters: [{ columnIndex: 0, operatorId: 'equals', value: 9_007_199_254_740_993n }] })).toEqual([records[2]]);
+
+        load(
+            [
+                [9_007_199_254_740_993n, 2, 1.5],
+                [9_223_372_036_854_775_807n, 3, 1.5]
+            ],
+            numberColumns,
+            'numbers'
+        );
+        expect(
+            queryNumbers({
+                aggregates: [
+                    { columnIndex: 0, functionId: 'maximum' },
+                    { columnIndex: 1, functionId: 'sum' }
+                ],
+                groupColumnIndexes: [2]
+            })
+        ).toEqual([[1.5, 9_223_372_036_854_775_807n, 5]]);
     });
 });
