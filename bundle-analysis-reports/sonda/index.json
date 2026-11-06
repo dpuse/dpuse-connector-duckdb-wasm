@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "0.14.0",
-    "generatedAt": "2026-11-03T16:19:18.624Z",
+    "generatedAt": "2026-11-06T12:08:03.976Z",
     "integration": "vite",
     "sources": false,
     "gzip": true,
@@ -21,7 +21,7 @@
       "name": "[unassigned]",
       "type": "other",
       "format": "other",
-      "uncompressed": 18845,
+      "uncompressed": 18846,
       "gzip": 1383,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
@@ -31,14 +31,14 @@
       "name": "config.json",
       "type": "script",
       "format": "esm",
-      "uncompressed": 3150
+      "uncompressed": 3151
     },
     {
       "kind": "asset",
       "name": "dist/dpuse-connector-duckdb-wasm.es.js",
       "type": "script",
-      "uncompressed": 265406,
-      "gzip": 56664,
+      "uncompressed": 265407,
+      "gzip": 56665,
       "brotli": 0
     },
     {
@@ -46,7 +46,7 @@
       "name": "node_modules/@dpuse/dpuse-shared/dist/dpuse-shared.es.js",
       "type": "script",
       "format": "esm",
-      "uncompressed": 64856
+      "uncompressed": 73339
     },
     {
       "kind": "chunk",
@@ -1378,7 +1378,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 2132,
-      "gzip": 599,
+      "gzip": 600,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
