@@ -88,7 +88,7 @@ License data is updated each time `npm run document` is run, using [license-chec
 
 | Dependency                                                   |     Version     | License(s) | Document                                                                      |
 | :----------------------------------------------------------- | :-------------: | :--------- | :---------------------------------------------------------------------------- |
-| [@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared) |     1.0.187     | MIT        | [LICENSE](licenses/downloads/@dpuse/dpuse-shared@1.0.187-LICENSE.txt)         |
+| [@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared) |     1.0.198     | MIT        | [LICENSE](licenses/downloads/@dpuse/dpuse-shared@1.0.198-LICENSE.txt)         |
 | [@duckdb/duckdb-wasm](https://github.com/duckdb/duckdb-wasm) | 1.33.1-dev110.0 | MIT        | [LICENSE](licenses/downloads/@duckdb/duckdb-wasm@1.33.1-dev110.0-LICENSE.txt) |
 | [apache-arrow](https://github.com/apache/arrow)              |     17.0.0      | Apache-2.0 | [LICENSE](licenses/downloads/apache-arrow@17.0.0-LICENSE.txt)                 |
 | [flatbuffers](https://github.com/google/flatbuffers)         |    24.12.23     | Apache-2.0 | [LICENSE](licenses/downloads/flatbuffers@24.12.23-LICENSE.txt)                |
@@ -99,8 +99,8 @@ License data is updated each time `npm run document` is run, using [license-chec
 
 The dependency tree below shows how each package in the table above is reached — direct and transitive — along with its installed version, release date, and update status. A package that does not ship itself, such as one whose parts are bundled separately, is left out and what ships beneath it is shown in its place. Packages flagged ❗ have a newer version available; ⚠️ indicates a package that hasn't been updated in the last 6 months or longer. Neither flag necessarily indicates a problem: we let new releases stabilise before upgrading, and some packages are mature and stable (have limited or no dependencies), so they require no active development.
 
-- **[@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared)** 1.0.187 — this month: 2026-11-06
-    - **[valibot](https://github.com/open-circle/valibot)** 1.5.0 — 1 mth ago: 2026-09-09
+- **[@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared)** 1.0.198 — this month: 2026-11-09
+    - **[valibot](https://github.com/open-circle/valibot)** 1.5.0 — 2 mths ago: 2026-09-09
 - **[@duckdb/duckdb-wasm](https://github.com/duckdb/duckdb-wasm)** 1.33.1-dev110.0 — this month: 2026-10-22 → latest: 1.33.1-dev57.0 — 4 mths ago: 2026-06-22 ❗
     - **[apache-arrow](https://github.com/apache/arrow)** 17.0.0 — 27 mths ago: 2024-07-16 ⚠️ → latest: 21.2.0 — 3 mths ago: 2026-07-21 ❗
 - **[apache-arrow](https://github.com/apache/arrow)** 17.0.0 — 27 mths ago: 2024-07-16 ⚠️ → latest: 21.2.0 — 3 mths ago: 2026-07-21 ❗
@@ -208,10 +208,10 @@ This section is updated each time `npm run document` is run. Settings come from 
 
 ### Code Quality
 
-| Check         | Status | What it does                                                                                                                                                                                                                   |
-| :------------ | :----- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Code analysis | ❌ Off | [SonarCloud](https://sonarcloud.io) checks every push for bugs, code smells and vulnerabilities.                                                                                                                               |
-| Linting       | ✅ On  | [ESLint](https://eslint.org) checks the code for errors and style problems. Part of the [CI workflow](https://github.com/dpuse/dpuse-connector-duckdb-wasm/actions/workflows/ci.yml) on every push and pull request to `main`. |
+| Check         | Status | What it does                                                                                                                                                                                                                                                                                                           |
+| :------------ | :----- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Code analysis | ✅ On  | [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dpuse_dpuse-connector-duckdb-wasm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dpuse_dpuse-connector-duckdb-wasm) [SonarCloud](https://sonarcloud.io) checks every push for bugs, code smells and vulnerabilities. |
+| Linting       | ✅ On  | [ESLint](https://eslint.org) checks the code for errors and style problems. Part of the [CI workflow](https://github.com/dpuse/dpuse-connector-duckdb-wasm/actions/workflows/ci.yml) on every push and pull request to `main`.                                                                                         |
 
 ### Security Analysis
 
