@@ -7,7 +7,7 @@ import type { QueryRecordsOptions } from '@dpuse/dpuse-shared';
 // ── Local Framework
 import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoreQuery, fromStoredValue, type StoredColumn } from '@/duckdbSql';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 const STORED_COLUMNS: StoredColumn[] = [
     { dataSubtypeId: undefined, dataTypeId: 'string' },
@@ -16,10 +16,6 @@ const STORED_COLUMNS: StoredColumn[] = [
     { dataSubtypeId: 'date', dataTypeId: 'temporal' },
     { dataSubtypeId: undefined, dataTypeId: 'unknown' }
 ];
-
-function constructQuery(options: Partial<QueryRecordsOptions>): QueryRecordsOptions {
-    return { aggregates: [], filters: [], groupColumnIndexes: [], limit: 100, offset: 0, path: 'sales', sorts: [], ...options };
-}
 
 // ── Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -114,3 +110,9 @@ describe('fromStoredValue', () => {
         expect(fromStoredValue(true, STORED_COLUMNS[2])).toBe(true);
     });
 });
+
+// ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+function constructQuery(options: Partial<QueryRecordsOptions>): QueryRecordsOptions {
+    return { aggregates: [], filters: [], groupColumnIndexes: [], limit: 100, offset: 0, path: 'sales', sorts: [], ...options };
+}

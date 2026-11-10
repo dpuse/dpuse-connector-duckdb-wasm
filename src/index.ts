@@ -11,7 +11,6 @@ import { AsyncDuckDB, type AsyncDuckDBConnection, DuckDBAccessMode, VoidLogger }
 // ── DPUse Framework
 import { normalizeToError } from '@dpuse/dpuse-shared';
 import type {
-    ConnectorConfig,
     ConnectorInterface,
     ConnectorUtilities,
     DropObjectOptions,
@@ -38,9 +37,6 @@ import {
     type StoredColumn
 } from '@/duckdbSql';
 
-// ── Data
-import config from '~/config.json';
-
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 interface OpenStore {
@@ -65,16 +61,14 @@ const workerScriptURLPolicy = createWorkerScriptURLPolicy();
 // database, so opening takes a Web Lock first and closing releases it. DuckDB runs in a worker of its own, which this
 // connector starts from the files served beside its script.
 export class Connector implements ConnectorInterface {
-    abortController: AbortController | undefined;
-    readonly config: ConnectorConfig;
-    connectorUtilities: ConnectorUtilities;
+    private abortController: AbortController | undefined; // The latest operation's. An operation that ends clears it only if no later one has replaced it.
+    private readonly connectorUtilities: ConnectorUtilities;
+    private readonly toolConfigs;
     openStoreState: OpenStore | undefined;
     releaseLock: (() => void) | undefined;
-    readonly toolConfigs;
 
     constructor(connectorUtilities: ConnectorUtilities, toolConfigs: ToolConfig[]) {
         this.abortController = undefined;
-        this.config = config as ConnectorConfig;
         this.connectorUtilities = connectorUtilities;
         this.openStoreState = undefined;
         this.releaseLock = undefined;
@@ -123,7 +117,8 @@ export class Connector implements ConnectorInterface {
     async loadObjectRecords(options: LoadObjectRecordsOptions, chunks: AsyncIterable<StoreRecord[]>): Promise<LoadObjectRecordsResult> {
         const { connection } = this.establishOpenStore();
         const storedColumns = constructStoredColumns(options.columnConfigs);
-        this.abortController = new AbortController();
+        const abortController = new AbortController();
+        this.abortController = abortController;
         const signal = this.abortController.signal;
         let recordCount = 0;
         try {
@@ -146,7 +141,7 @@ export class Connector implements ConnectorInterface {
             await connection.query('ROLLBACK');
             throw normalizeToError(error);
         } finally {
-            this.abortController = undefined;
+            if (this.abortController === abortController) this.abortController = undefined;
         }
     }
 

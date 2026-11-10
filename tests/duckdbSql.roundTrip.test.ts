@@ -10,7 +10,7 @@ import type { ObjectColumnConfig, QueryRecordsOptions, StoreRecord } from '@dpus
 // ── Local Framework
 import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoredColumns, constructStoreQuery, fromStoredValue, STAGING_TABLE } from '@/duckdbSql';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 // The part of the package's Node build these tests use. It ships with no types of its own.
 interface Connection {
@@ -30,6 +30,8 @@ interface NodeBlockingBuild {
     VoidLogger: new () => unknown;
 }
 
+// ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 const DAY = 86_400_000;
 const STORED_COLUMNS = constructStoredColumns([
     { dataSubtypeId: 'date', dataTypeId: 'temporal' },
@@ -37,52 +39,9 @@ const STORED_COLUMNS = constructStoredColumns([
     { dataSubtypeId: 'dateTime', dataTypeId: 'temporal' }
 ] as ObjectColumnConfig[]);
 
-async function constructConnection(): Promise<Connection> {
-    const require = createRequire(import.meta.url);
-    const { createDuckDB, DuckDBAccessMode: accessModes, NODE_RUNTIME, VoidLogger } = require('@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs') as NodeBlockingBuild;
-    const packageFolder = path.dirname(require.resolve('@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs')); // The '.wasm' files are named differently from one DuckDB build to another, and each build picks the bundle it knows.
-    const database = await createDuckDB(
-        { base: { mainModule: path.join(packageFolder, 'duckdb-base.wasm'), mainWorker: '' }, mvp: { mainModule: path.join(packageFolder, 'duckdb-mvp.wasm'), mainWorker: '' } },
-        new VoidLogger(),
-        NODE_RUNTIME
-    );
-    await database.instantiate();
-    database.open({ accessMode: accessModes.READ_WRITE, path: ':memory:' });
-    return database.connect();
-}
+// ── State ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 const connection = await constructConnection();
-
-function constructTemporalRecord(dayNumber: number, timeOfDay: number): StoreRecord {
-    return [new Date(dayNumber * DAY), new Date(timeOfDay), new Date(dayNumber * DAY + timeOfDay)];
-}
-
-function load(records: StoreRecord[], storedColumns = STORED_COLUMNS, path = 'dates'): void {
-    connection.query(`DROP TABLE IF EXISTS ${path}`);
-    connection.query(constructCreateTableSql(path, storedColumns));
-    connection.insertArrowFromIPCStream(tableToIPC(constructArrowTable(records, storedColumns), 'stream'), { create: true, name: STAGING_TABLE });
-    connection.query(constructStagedInsertSql(path, storedColumns));
-    connection.query(`DROP TABLE ${STAGING_TABLE}`);
-}
-
-function query(options: Partial<QueryRecordsOptions>, storedColumns = STORED_COLUMNS): StoreRecord[] {
-    const { pageSql, resultColumns, values } = constructStoreQuery(storedColumns, {
-        aggregates: [],
-        filters: [],
-        groupColumnIndexes: [],
-        limit: 100_000,
-        offset: 0,
-        path: 'dates',
-        sorts: [],
-        ...options
-    });
-    const statement = connection.prepare(pageSql);
-    const table = statement.query(...values);
-    statement.close();
-    return Array.from({ length: table.numRows }, (_value, rowIndex) =>
-        resultColumns.map((storedColumn, columnIndex) => fromStoredValue(table.getChildAt(columnIndex)?.get(rowIndex), storedColumn))
-    );
-}
 
 // ── Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -189,3 +148,50 @@ describe('duckdbSql large number round trip', () => {
         ).toEqual([[1.5, 9_223_372_036_854_775_807n, 5]]);
     });
 });
+
+// ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+async function constructConnection(): Promise<Connection> {
+    const require = createRequire(import.meta.url);
+    const { createDuckDB, DuckDBAccessMode: accessModes, NODE_RUNTIME, VoidLogger } = require('@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs') as NodeBlockingBuild;
+    const packageFolder = path.dirname(require.resolve('@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs')); // The '.wasm' files are named differently from one DuckDB build to another, and each build picks the bundle it knows.
+    const database = await createDuckDB(
+        { base: { mainModule: path.join(packageFolder, 'duckdb-base.wasm'), mainWorker: '' }, mvp: { mainModule: path.join(packageFolder, 'duckdb-mvp.wasm'), mainWorker: '' } },
+        new VoidLogger(),
+        NODE_RUNTIME
+    );
+    await database.instantiate();
+    database.open({ accessMode: accessModes.READ_WRITE, path: ':memory:' });
+    return database.connect();
+}
+
+function constructTemporalRecord(dayNumber: number, timeOfDay: number): StoreRecord {
+    return [new Date(dayNumber * DAY), new Date(timeOfDay), new Date(dayNumber * DAY + timeOfDay)];
+}
+
+function load(records: StoreRecord[], storedColumns = STORED_COLUMNS, path = 'dates'): void {
+    connection.query(`DROP TABLE IF EXISTS ${path}`);
+    connection.query(constructCreateTableSql(path, storedColumns));
+    connection.insertArrowFromIPCStream(tableToIPC(constructArrowTable(records, storedColumns), 'stream'), { create: true, name: STAGING_TABLE });
+    connection.query(constructStagedInsertSql(path, storedColumns));
+    connection.query(`DROP TABLE ${STAGING_TABLE}`);
+}
+
+function query(options: Partial<QueryRecordsOptions>, storedColumns = STORED_COLUMNS): StoreRecord[] {
+    const { pageSql, resultColumns, values } = constructStoreQuery(storedColumns, {
+        aggregates: [],
+        filters: [],
+        groupColumnIndexes: [],
+        limit: 100_000,
+        offset: 0,
+        path: 'dates',
+        sorts: [],
+        ...options
+    });
+    const statement = connection.prepare(pageSql);
+    const table = statement.query(...values);
+    statement.close();
+    return Array.from({ length: table.numRows }, (_value, rowIndex) =>
+        resultColumns.map((storedColumn, columnIndex) => fromStoredValue(table.getChildAt(columnIndex)?.get(rowIndex), storedColumn))
+    );
+}
