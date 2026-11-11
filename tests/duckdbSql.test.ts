@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 import type { QueryRecordsOptions } from '@dpuse/dpuse-shared';
 
 // ── Local Framework
-import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoreQuery, fromStoredValue, type StoredColumn } from '@/duckdbSql';
+import { constructArrowTable, constructCreateTableSql, constructObjectsTableReference, constructStagedInsertSql, constructStoreQuery } from '@/duckdbSql';
+import { constructTableReference, fromStoredValue, type StoredColumn } from '@/duckdbSql';
 
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,25 @@ const STORED_COLUMNS: StoredColumn[] = [
 describe('constructCreateTableSql', () => {
     it('creates a column of the audited type for each column, named by position', () => {
         expect(constructCreateTableSql('my "view"', STORED_COLUMNS)).toBe('CREATE TABLE "my ""view""" (c0 VARCHAR, c1 BIGINT, c2 BOOLEAN, c3 DATE, c4 VARCHAR)');
+    });
+});
+
+describe('constructTableReference', () => {
+    it('names a table on its own in the default database, and with its database in another', () => {
+        expect(constructTableReference('sales')).toBe('"sales"');
+        expect(constructTableReference('/archive/sales')).toBe('"archive"."sales"');
+        expect(constructCreateTableSql('/archive/sales', STORED_COLUMNS)).toMatch(/^CREATE TABLE "archive"\."sales" /u);
+    });
+
+    it('rejects a path that names its database wrongly', () => {
+        expect(() => constructTableReference('/archive.db/sales')).toThrow("Encountered invalid store path '/archive.db/sales'.");
+    });
+});
+
+describe('constructObjectsTableReference', () => {
+    it("names the table of column types in the path's database", () => {
+        expect(constructObjectsTableReference('sales')).toBe('_dpuse_objects');
+        expect(constructObjectsTableReference('/archive/sales')).toBe('"archive"._dpuse_objects');
     });
 });
 

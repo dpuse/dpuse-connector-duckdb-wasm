@@ -8,7 +8,8 @@ import { type Table, tableToIPC } from 'apache-arrow';
 import type { ObjectColumnConfig, QueryRecordsOptions, StoreRecord } from '@dpuse/dpuse-shared';
 
 // ── Local Framework
-import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoredColumns, constructStoreQuery, fromStoredValue, STAGING_TABLE } from '@/duckdbSql';
+import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoredColumns, constructStoreQuery } from '@/duckdbSql';
+import { constructTableReference, fromStoredValue, STAGING_TABLE } from '@/duckdbSql';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,19 @@ describe('duckdbSql large number round trip', () => {
     });
 });
 
+describe('duckdbSql attached database round trip', () => {
+    it('loads and queries a table in another database, leaving a table of the same name in the default one alone', () => {
+        const numberColumns = constructStoredColumns([{ dataSubtypeId: 'integer', dataTypeId: 'numeric' }] as ObjectColumnConfig[]);
+        connection.query('ATTACH IF NOT EXISTS \':memory:\' AS "archive"'); // The connector attaches a file of its own. An in-memory database stands in for it.
+
+        load([[1], [2]], numberColumns, 'orders');
+        load([[3]], numberColumns, '/archive/orders');
+
+        expect(query({ path: '/archive/orders' }, numberColumns)).toEqual([[3]]);
+        expect(query({ path: 'orders' }, numberColumns)).toEqual([[1], [2]]);
+    });
+});
+
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 async function constructConnection(): Promise<Connection> {
@@ -170,7 +184,7 @@ function constructTemporalRecord(dayNumber: number, timeOfDay: number): StoreRec
 }
 
 function load(records: StoreRecord[], storedColumns = STORED_COLUMNS, path = 'dates'): void {
-    connection.query(`DROP TABLE IF EXISTS ${path}`);
+    connection.query(`DROP TABLE IF EXISTS ${constructTableReference(path)}`);
     connection.query(constructCreateTableSql(path, storedColumns));
     connection.insertArrowFromIPCStream(tableToIPC(constructArrowTable(records, storedColumns), 'stream'), { create: true, name: STAGING_TABLE });
     connection.query(constructStagedInsertSql(path, storedColumns));

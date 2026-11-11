@@ -2,6 +2,7 @@
 import { Bool, Float64, Int64, makeData, makeVector, Table, Utf8, type Vector } from 'apache-arrow';
 
 // ── DPUse Framework
+import { resolveStorePath } from '@dpuse/dpuse-shared';
 import type { DataSubtypeId, DataTypeId, ObjectColumnConfig, QueryAggregate, QueryFilter, QueryRecordsOptions, QuerySort, StoreRecord, StoreValue } from '@dpuse/dpuse-shared';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -46,7 +47,7 @@ export function constructStoredColumns(columnConfigs: ObjectColumnConfig[]): Sto
 
 export function constructCreateTableSql(path: string, storedColumns: StoredColumn[]): string {
     const columnDefinitions = storedColumns.map((storedColumn, columnIndex) => `${columnName(columnIndex)} ${resolveColumnType(storedColumn)}`);
-    return `CREATE TABLE ${quoteIdentifier(path)} (${columnDefinitions.join(', ')})`;
+    return `CREATE TABLE ${constructTableReference(path)} (${columnDefinitions.join(', ')})`;
 }
 
 // Records go into DuckDB as Arrow columns. Each column is built straight from typed arrays, because Arrow's own builders
@@ -69,7 +70,7 @@ export function constructStagedInsertSql(path: string, storedColumns: StoredColu
     const selections = storedColumns.map((storedColumn, columnIndex) =>
         storedColumn.dataTypeId === 'temporal' ? constructTemporalSql(columnName(columnIndex), storedColumn) : columnName(columnIndex)
     );
-    return `INSERT INTO ${quoteIdentifier(path)} SELECT ${selections.join(', ')} FROM ${STAGING_TABLE}`;
+    return `INSERT INTO ${constructTableReference(path)} SELECT ${selections.join(', ')} FROM ${STAGING_TABLE}`;
 }
 
 export function constructStoreQuery(storedColumns: StoredColumn[], options: QueryRecordsOptions): StoreQuery {
@@ -82,7 +83,7 @@ export function constructStoreQuery(storedColumns: StoredColumn[], options: Quer
     const whereParts = options.filters.map((filter) => constructFilterSql(filter, storedColumns));
     const whereSql = whereParts.length > 0 ? ` WHERE ${whereParts.map((part) => part.sql).join(' AND ')}` : '';
     const groupSql = isGrouped ? ` GROUP BY ${options.groupColumnIndexes.map((columnIndex) => columnName(columnIndex)).join(', ')}` : '';
-    const baseSql = `SELECT ${selections.join(', ')} FROM ${quoteIdentifier(options.path)}${whereSql}${groupSql}`;
+    const baseSql = `SELECT ${selections.join(', ')} FROM ${constructTableReference(options.path)}${whereSql}${groupSql}`;
     const pageSql = `${baseSql}${constructOrderSql(options.sorts, selections.length)} LIMIT ${String(checkCount(options.limit))} OFFSET ${String(checkCount(options.offset))}`;
 
     return { countSql: `SELECT count(*) FROM (${baseSql})`, pageSql, resultColumns, values: whereParts.flatMap((part) => part.values) };
@@ -101,6 +102,18 @@ export function fromStoredValue(value: unknown, storedColumn: StoredColumn | und
 
 export function quoteIdentifier(name: string): string {
     return `"${name.replaceAll('"', '""')}"`;
+}
+
+// A table in the store's default database is named on its own. One in another database is named with its database.
+export function constructTableReference(path: string): string {
+    const { databaseName, tableName } = resolveStorePath(path);
+    return databaseName == null ? quoteIdentifier(tableName) : `${quoteIdentifier(databaseName)}.${quoteIdentifier(tableName)}`;
+}
+
+// Each database keeps its own table of column types, keyed by table name, so its types stay with its tables.
+export function constructObjectsTableReference(path: string): string {
+    const { databaseName } = resolveStorePath(path);
+    return databaseName == null ? OBJECTS_TABLE : `${quoteIdentifier(databaseName)}.${OBJECTS_TABLE}`;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────

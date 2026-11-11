@@ -7,7 +7,6 @@
         "en": "Stores data views for investigation in a DuckDB database saved in the browser's private file system (OPFS). Data stays on this device. Only one tab can use it at a time. Faster than SQLite for grouping large data, but a larger download (about 8 MB) and more memory (about 200–400 MB)."
     },
     "actionNames": [
-        "abortOperation",
         "closeStore",
         "dropObject",
         "loadObjectRecords",
@@ -35,5 +34,5 @@
     "vendorAccountURL": null,
     "vendorDocumentationURL": "https://duckdb.org/docs/stable/clients/wasm/overview",
     "vendorHomeURL": "https://duckdb.org/",
-    "version": "1.0.118"
+    "version": "1.0.119"
 }

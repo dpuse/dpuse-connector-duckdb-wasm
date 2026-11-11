@@ -9,7 +9,7 @@ import type { Table } from 'apache-arrow';
 import { AsyncDuckDB, type AsyncDuckDBConnection, DuckDBAccessMode, VoidLogger } from '@duckdb/duckdb-wasm';
 
 // ── DPUse Framework
-import { normalizeToError } from '@dpuse/dpuse-shared';
+import { acquireWebLock, normalizeToError, resolveRequestSignal, resolveStorePath } from '@dpuse/dpuse-shared';
 import type {
     ConnectorInterface,
     ConnectorUtilities,
@@ -27,9 +27,11 @@ import type {
 import {
     constructArrowTable,
     constructCreateTableSql,
+    constructObjectsTableReference,
     constructStagedInsertSql,
     constructStoredColumns,
     constructStoreQuery,
+    constructTableReference,
     fromStoredValue,
     OBJECTS_TABLE,
     quoteIdentifier,
@@ -40,13 +42,15 @@ import {
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 interface OpenStore {
+    attachedDatabaseNames: Set<string>; // The databases named in paths, attached since the store opened.
     connection: AsyncDuckDBConnection;
     database: AsyncDuckDB;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-const DATABASE_PATH = 'opfs://dpuse-connector-duckdb-wasm.duckdb';
+const DATABASE_PATH = 'opfs://dpuse-connector-duckdb-wasm.duckdb'; // The default database, used by a path that names no database.
+const OBJECTS_TABLE_COLUMNS_SQL = '(path VARCHAR PRIMARY KEY, columns VARCHAR NOT NULL)';
 const LOCK_NAME = 'dpuse-connector-duckdb-wasm'; // Held by the one tab that has the store open.
 const TRUSTED_TYPES_POLICY_NAME = 'dpuse-connector-duckdb-wasm'; // Must be listed in the app's CSP 'trusted-types' directive.
 const WASM_FILE_NAME = 'duckdb-base.wasm';
@@ -57,18 +61,17 @@ const workerScriptURLPolicy = createWorkerScriptURLPolicy();
 
 // ── Connector ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-// Keeps data views in one DuckDB database saved in the browser's private file system (OPFS). Only one tab can open the
-// database, so opening takes a Web Lock first and closing releases it. DuckDB runs in a worker of its own, which this
+// Keeps data views in DuckDB databases saved in the browser's private file system (OPFS). A path '/database/table' names
+// its database, and each database is a file of its own, attached on first use. Only one tab can open the store, so
+// opening takes a Web Lock first and closing releases it, for every database at once. DuckDB runs in a worker of its own, which this
 // connector starts from the files served beside its script.
 export class Connector implements ConnectorInterface {
-    private abortController: AbortController | undefined; // The latest operation's. An operation that ends clears it only if no later one has replaced it.
     private readonly connectorUtilities: ConnectorUtilities;
     private readonly toolConfigs;
     openStoreState: OpenStore | undefined;
     releaseLock: (() => void) | undefined;
 
     constructor(connectorUtilities: ConnectorUtilities, toolConfigs: ToolConfig[]) {
-        this.abortController = undefined;
         this.connectorUtilities = connectorUtilities;
         this.openStoreState = undefined;
         this.releaseLock = undefined;
@@ -76,12 +79,6 @@ export class Connector implements ConnectorInterface {
     }
 
     // ── Operations ───────────────────────────────────────────────────────────────────────────────────────────────────
-
-    abortOperation(): void {
-        if (!this.abortController) return;
-        this.abortController.abort();
-        this.abortController = undefined;
-    }
 
     // Ending DuckDB's worker is what closes its files, so another tab can open the store.
     async closeStore(): Promise<void> {
@@ -101,11 +98,13 @@ export class Connector implements ConnectorInterface {
     }
 
     async dropObject(options: DropObjectOptions): Promise<void> {
-        const { connection } = this.establishOpenStore();
+        const openStore = this.establishOpenStore();
+        const { connection } = openStore;
+        const { tableName } = await attachDatabase(openStore, options.path);
         try {
             await connection.query('BEGIN TRANSACTION');
-            await connection.query(`DROP TABLE IF EXISTS ${quoteIdentifier(options.path)}`);
-            await runStatement(connection, `DELETE FROM ${OBJECTS_TABLE} WHERE path = ?`, [options.path]);
+            await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
+            await runStatement(connection, `DELETE FROM ${constructObjectsTableReference(options.path)} WHERE path = ?`, [tableName]);
             await connection.query('COMMIT');
         } catch (error) {
             await connection.query('ROLLBACK');
@@ -115,17 +114,20 @@ export class Connector implements ConnectorInterface {
 
     // Replaces an object in one transaction, so a failed or stopped load leaves the earlier one in place.
     async loadObjectRecords(options: LoadObjectRecordsOptions, chunks: AsyncIterable<StoreRecord[]>): Promise<LoadObjectRecordsResult> {
-        const { connection } = this.establishOpenStore();
+        const openStore = this.establishOpenStore();
+        const { connection } = openStore;
+        const { databaseName, tableName } = await attachDatabase(openStore, options.path);
         const storedColumns = constructStoredColumns(options.columnConfigs);
-        const abortController = new AbortController();
-        this.abortController = abortController;
-        const signal = this.abortController.signal;
+        const signal = resolveRequestSignal(options);
         let recordCount = 0;
         try {
             await connection.query('BEGIN TRANSACTION');
-            await connection.query(`DROP TABLE IF EXISTS ${quoteIdentifier(options.path)}`);
+            await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
             await connection.query(constructCreateTableSql(options.path, storedColumns));
-            await runStatement(connection, `INSERT OR REPLACE INTO ${OBJECTS_TABLE} (path, columns) VALUES (?, ?)`, [options.path, JSON.stringify(storedColumns)]);
+            await runStatement(connection, `INSERT OR REPLACE INTO ${constructObjectsTableReference(options.path)} (path, columns) VALUES (?, ?)`, [
+                tableName,
+                JSON.stringify(storedColumns)
+            ]);
             const stagedInsertSql = constructStagedInsertSql(options.path, storedColumns);
             for await (const records of chunks) {
                 signal.throwIfAborted();
@@ -135,24 +137,24 @@ export class Connector implements ConnectorInterface {
                 recordCount += records.length;
             }
             await connection.query('COMMIT');
-            await connection.query('CHECKPOINT'); // Writes the load into the database file now, not at some later point.
+            await connection.query(databaseName == null ? 'CHECKPOINT' : `CHECKPOINT ${quoteIdentifier(databaseName)}`); // Writes the load into the database file now, not at some later point.
             return { recordCount };
         } catch (error) {
             await connection.query('ROLLBACK');
             throw normalizeToError(error);
-        } finally {
-            if (this.abortController === abortController) this.abortController = undefined;
         }
     }
 
     async openStore(): Promise<OpenStoreResult> {
         if (this.openStoreState) return { storeStateId: 'ready' };
         if (!(await isPrivateFileSystemAvailable())) return { storeStateId: 'unavailable' };
-        if (!(await this.acquireLock())) return { storeStateId: 'heldElsewhere' };
+        const releaseLock = await acquireWebLock(LOCK_NAME); // Held until the store closes.
+        if (releaseLock == null) return { storeStateId: 'heldElsewhere' };
+        this.releaseLock = releaseLock;
         try {
             await removeScratchFolders(); // Clears any left by a tab that closed while DuckDB was running.
             this.openStoreState = await startDuckDB();
-            await this.openStoreState.connection.query(`CREATE TABLE IF NOT EXISTS ${OBJECTS_TABLE} (path VARCHAR PRIMARY KEY, columns VARCHAR NOT NULL)`);
+            await this.openStoreState.connection.query(`CREATE TABLE IF NOT EXISTS ${OBJECTS_TABLE} ${OBJECTS_TABLE_COLUMNS_SQL}`);
             return { storeStateId: 'ready' };
         } catch (error) {
             await this.closeStore();
@@ -161,9 +163,11 @@ export class Connector implements ConnectorInterface {
     }
 
     async queryRecords(options: QueryRecordsOptions): Promise<QueryRecordsResult> {
-        const { connection } = this.establishOpenStore();
+        const openStore = this.establishOpenStore();
+        const { connection } = openStore;
         try {
-            const storedColumnsTable = await runStatement(connection, `SELECT columns FROM ${OBJECTS_TABLE} WHERE path = ?`, [options.path]);
+            const { tableName } = await attachDatabase(openStore, options.path);
+            const storedColumnsTable = await runStatement(connection, `SELECT columns FROM ${constructObjectsTableReference(options.path)} WHERE path = ?`, [tableName]);
             const storedColumnsJSON = storedColumnsTable.getChildAt(0)?.get(0) as string | null | undefined;
             if (storedColumnsJSON == null) throw new Error(`'${options.path}' has not been loaded.`);
             const storeQuery = constructStoreQuery(JSON.parse(storedColumnsJSON) as StoredColumn[], options);
@@ -177,27 +181,6 @@ export class Connector implements ConnectorInterface {
 
     // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
-    // Asks for the lock without waiting, so a tab that cannot have it is told at once. A request that fails, e.g. where
-    // Web Locks are blocked, ends first and so rejects. The lock is held until 'releaseHeldLock' is called.
-    private async acquireLock(): Promise<boolean> {
-        const lockAcquisition = Promise.withResolvers<boolean>();
-        const lockRequest = navigator.locks.request(LOCK_NAME, { ifAvailable: true }, (lock) => {
-            if (lock == null) {
-                lockAcquisition.resolve(false);
-                return;
-            }
-            lockAcquisition.resolve(true);
-            return new Promise<void>((release) => {
-                this.releaseLock = release;
-            });
-        });
-        const endedRequest = (async (): Promise<boolean> => {
-            await lockRequest;
-            return false;
-        })();
-        return await Promise.race([lockAcquisition.promise, endedRequest]);
-    }
-
     private establishOpenStore(): OpenStore {
         if (!this.openStoreState) throw new Error('The store is not open.');
         return this.openStoreState;
@@ -210,6 +193,19 @@ export class Connector implements ConnectorInterface {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// Attaches a database named in the path on first use, with its own table of column types. DuckDB only reads files in the
+// private file system that it has been told of, so the file is registered before it is attached.
+async function attachDatabase(openStore: OpenStore, path: string): Promise<{ databaseName: string | undefined; tableName: string }> {
+    const { databaseName, tableName } = resolveStorePath(path);
+    if (databaseName == null || openStore.attachedDatabaseNames.has(databaseName)) return { databaseName, tableName };
+    const databasePath = `opfs://${databaseName}.duckdb`; // 'resolveStorePath' allows only letters, digits, '_' and '-' in a name.
+    await openStore.database.registerOPFSFileName(databasePath);
+    await openStore.connection.query(`ATTACH '${databasePath}' AS ${quoteIdentifier(databaseName)}`);
+    await openStore.connection.query(`CREATE TABLE IF NOT EXISTS ${quoteIdentifier(databaseName)}.${OBJECTS_TABLE} ${OBJECTS_TABLE_COLUMNS_SQL}`);
+    openStore.attachedDatabaseNames.add(databaseName);
+    return { databaseName, tableName };
+}
 
 function createWorkerScriptURLPolicy(): Pick<TrustedTypePolicy, 'createScriptURL'> | undefined {
     try {
@@ -285,7 +281,7 @@ importScripts(policy ? policy.createScriptURL(url) : url);`;
     try {
         await Promise.race([database.instantiate(new URL(WASM_FILE_NAME, import.meta.url).href), workerFailure.promise]);
         await database.open({ accessMode: DuckDBAccessMode.READ_WRITE, path: DATABASE_PATH });
-        return { connection: await database.connect(), database };
+        return { attachedDatabaseNames: new Set(), connection: await database.connect(), database };
     } catch (error) {
         await database.terminate(); // Ends the worker, so a failed start leaves no files open.
         throw error;
