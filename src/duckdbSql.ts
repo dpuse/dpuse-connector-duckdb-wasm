@@ -29,8 +29,8 @@ type QueryValue = boolean | number | string | null;
 
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-// Holds each object's audited column types. Named so it cannot clash with a data view's table, whose name is its path.
-export const OBJECTS_TABLE = '_dpuse_objects';
+// Counts the tables with the name given, in the database given or, when it is null, in the store's default database.
+export const TABLE_COUNT_SQL = 'SELECT count(*) FROM duckdb_tables() WHERE table_name = ? AND database_name = coalesce(?, current_database())';
 
 // Each chunk of a load goes into this table first, then into the object's table with each value cast to its type.
 export const STAGING_TABLE = '_dpuse_staging';
@@ -108,12 +108,6 @@ export function quoteIdentifier(name: string): string {
 export function constructTableReference(path: string): string {
     const { databaseName, tableName } = resolveStorePath(path);
     return databaseName == null ? quoteIdentifier(tableName) : `${quoteIdentifier(databaseName)}.${quoteIdentifier(tableName)}`;
-}
-
-// Each database keeps its own table of column types, keyed by table name, so its types stay with its tables.
-export function constructObjectsTableReference(path: string): string {
-    const { databaseName } = resolveStorePath(path);
-    return databaseName == null ? OBJECTS_TABLE : `${quoteIdentifier(databaseName)}.${OBJECTS_TABLE}`;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────

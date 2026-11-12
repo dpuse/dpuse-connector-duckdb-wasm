@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { QueryRecordsOptions } from '@dpuse/dpuse-shared';
 
 // ── Local Framework
-import { constructArrowTable, constructCreateTableSql, constructObjectsTableReference, constructStagedInsertSql, constructStoreQuery } from '@/duckdbSql';
+import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoreQuery } from '@/duckdbSql';
 import { constructTableReference, fromStoredValue, type StoredColumn } from '@/duckdbSql';
 
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -35,13 +35,6 @@ describe('constructTableReference', () => {
 
     it('rejects a path that names its database wrongly', () => {
         expect(() => constructTableReference('/archive.db/sales')).toThrow("Encountered invalid store path '/archive.db/sales'.");
-    });
-});
-
-describe('constructObjectsTableReference', () => {
-    it("names the table of column types in the path's database", () => {
-        expect(constructObjectsTableReference('sales')).toBe('_dpuse_objects');
-        expect(constructObjectsTableReference('/archive/sales')).toBe('"archive"._dpuse_objects');
     });
 });
 
@@ -134,5 +127,5 @@ describe('fromStoredValue', () => {
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 function constructQuery(options: Partial<QueryRecordsOptions>): QueryRecordsOptions {
-    return { aggregates: [], filters: [], groupColumnIndexes: [], limit: 100, offset: 0, path: 'sales', sorts: [], ...options };
+    return { aggregates: [], columnConfigs: [], filters: [], groupColumnIndexes: [], limit: 100, offset: 0, path: 'sales', sorts: [], ...options };
 }

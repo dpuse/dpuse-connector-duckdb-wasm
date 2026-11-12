@@ -9,7 +9,7 @@ import type { ObjectColumnConfig, QueryRecordsOptions, StoreRecord } from '@dpus
 
 // ── Local Framework
 import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoredColumns, constructStoreQuery } from '@/duckdbSql';
-import { constructTableReference, fromStoredValue, STAGING_TABLE } from '@/duckdbSql';
+import { constructTableReference, fromStoredValue, STAGING_TABLE, TABLE_COUNT_SQL } from '@/duckdbSql';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -161,6 +161,17 @@ describe('duckdbSql attached database round trip', () => {
         expect(query({ path: '/archive/orders' }, numberColumns)).toEqual([[3]]);
         expect(query({ path: 'orders' }, numberColumns)).toEqual([[1], [2]]);
     });
+
+    it('finds a loaded table in the default database or in another, and not one that was never loaded', () => {
+        const numberColumns = constructStoredColumns([{ dataSubtypeId: 'integer', dataTypeId: 'numeric' }] as ObjectColumnConfig[]);
+        connection.query('ATTACH IF NOT EXISTS \':memory:\' AS "archive"');
+        load([[1]], numberColumns, 'counted');
+        load([[1]], numberColumns, '/archive/counted');
+
+        expect(countTables('counted', null)).toBe(1);
+        expect(countTables('counted', 'archive')).toBe(1);
+        expect(countTables('missing', null)).toBe(0);
+    });
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -191,9 +202,17 @@ function load(records: StoreRecord[], storedColumns = STORED_COLUMNS, path = 'da
     connection.query(`DROP TABLE ${STAGING_TABLE}`);
 }
 
+function countTables(tableName: string, databaseName: string | null): number {
+    const statement = connection.prepare(TABLE_COUNT_SQL);
+    const table = statement.query(tableName, databaseName);
+    statement.close();
+    return Number(table.getChildAt(0)?.get(0));
+}
+
 function query(options: Partial<QueryRecordsOptions>, storedColumns = STORED_COLUMNS): StoreRecord[] {
     const { pageSql, resultColumns, values } = constructStoreQuery(storedColumns, {
         aggregates: [],
+        columnConfigs: [],
         filters: [],
         groupColumnIndexes: [],
         limit: 100_000,

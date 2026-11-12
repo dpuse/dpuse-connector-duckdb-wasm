@@ -27,16 +27,15 @@ import type {
 import {
     constructArrowTable,
     constructCreateTableSql,
-    constructObjectsTableReference,
     constructStagedInsertSql,
     constructStoredColumns,
     constructStoreQuery,
     constructTableReference,
     fromStoredValue,
-    OBJECTS_TABLE,
     quoteIdentifier,
     STAGING_TABLE,
-    type StoredColumn
+    type StoredColumn,
+    TABLE_COUNT_SQL
 } from '@/duckdbSql';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -50,7 +49,6 @@ interface OpenStore {
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 const DATABASE_PATH = 'opfs://dpuse-connector-duckdb-wasm.duckdb'; // The default database, used by a path that names no database.
-const OBJECTS_TABLE_COLUMNS_SQL = '(path VARCHAR PRIMARY KEY, columns VARCHAR NOT NULL)';
 const LOCK_NAME = 'dpuse-connector-duckdb-wasm'; // Held by the one tab that has the store open.
 const TRUSTED_TYPES_POLICY_NAME = 'dpuse-connector-duckdb-wasm'; // Must be listed in the app's CSP 'trusted-types' directive.
 const WASM_FILE_NAME = 'duckdb-base.wasm';
@@ -100,23 +98,20 @@ export class Connector implements ConnectorInterface {
     async dropObject(options: DropObjectOptions): Promise<void> {
         const openStore = this.establishOpenStore();
         const { connection } = openStore;
-        const { tableName } = await attachDatabase(openStore, options.path);
         try {
-            await connection.query('BEGIN TRANSACTION');
+            await attachDatabase(openStore, options.path);
             await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
-            await runStatement(connection, `DELETE FROM ${constructObjectsTableReference(options.path)} WHERE path = ?`, [tableName]);
-            await connection.query('COMMIT');
         } catch (error) {
-            await connection.query('ROLLBACK');
             throw normalizeToError(error);
         }
     }
 
-    // Replaces an object in one transaction, so a failed or stopped load leaves the earlier one in place.
+    // Replaces an object in one transaction, so a failed or stopped load leaves the earlier one in place. The columns'
+    // types are not kept, because every query brings them.
     async loadObjectRecords(options: LoadObjectRecordsOptions, chunks: AsyncIterable<StoreRecord[]>): Promise<LoadObjectRecordsResult> {
         const openStore = this.establishOpenStore();
         const { connection } = openStore;
-        const { databaseName, tableName } = await attachDatabase(openStore, options.path);
+        const { databaseName } = await attachDatabase(openStore, options.path);
         const storedColumns = constructStoredColumns(options.columnConfigs);
         const signal = resolveRequestSignal(options);
         let recordCount = 0;
@@ -124,10 +119,6 @@ export class Connector implements ConnectorInterface {
             await connection.query('BEGIN TRANSACTION');
             await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
             await connection.query(constructCreateTableSql(options.path, storedColumns));
-            await runStatement(connection, `INSERT OR REPLACE INTO ${constructObjectsTableReference(options.path)} (path, columns) VALUES (?, ?)`, [
-                tableName,
-                JSON.stringify(storedColumns)
-            ]);
             const stagedInsertSql = constructStagedInsertSql(options.path, storedColumns);
             for await (const records of chunks) {
                 signal.throwIfAborted();
@@ -154,7 +145,6 @@ export class Connector implements ConnectorInterface {
         try {
             await removeScratchFolders(); // Clears any left by a tab that closed while DuckDB was running.
             this.openStoreState = await startDuckDB();
-            await this.openStoreState.connection.query(`CREATE TABLE IF NOT EXISTS ${OBJECTS_TABLE} ${OBJECTS_TABLE_COLUMNS_SQL}`);
             return { storeStateId: 'ready' };
         } catch (error) {
             await this.closeStore();
@@ -166,11 +156,10 @@ export class Connector implements ConnectorInterface {
         const openStore = this.establishOpenStore();
         const { connection } = openStore;
         try {
-            const { tableName } = await attachDatabase(openStore, options.path);
-            const storedColumnsTable = await runStatement(connection, `SELECT columns FROM ${constructObjectsTableReference(options.path)} WHERE path = ?`, [tableName]);
-            const storedColumnsJSON = storedColumnsTable.getChildAt(0)?.get(0) as string | null | undefined;
-            if (storedColumnsJSON == null) throw new Error(`'${options.path}' has not been loaded.`);
-            const storeQuery = constructStoreQuery(JSON.parse(storedColumnsJSON) as StoredColumn[], options);
+            const { databaseName, tableName } = await attachDatabase(openStore, options.path);
+            const tableCountTable = await runStatement(connection, TABLE_COUNT_SQL, [tableName, databaseName ?? null]);
+            if (Number(tableCountTable.getChildAt(0)?.get(0) ?? 0) === 0) throw new Error(`'${options.path}' has not been loaded.`);
+            const storeQuery = constructStoreQuery(constructStoredColumns(options.columnConfigs), options); // The query brings the columns the object was loaded with.
             const pageTable = await runStatement(connection, storeQuery.pageSql, storeQuery.values);
             const countTable = await runStatement(connection, storeQuery.countSql, storeQuery.values);
             return { records: readRecords(pageTable, storeQuery.resultColumns), totalCount: Number(countTable.getChildAt(0)?.get(0) ?? 0) };
@@ -194,15 +183,14 @@ export class Connector implements ConnectorInterface {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-// Attaches a database named in the path on first use, with its own table of column types. DuckDB only reads files in the
-// private file system that it has been told of, so the file is registered before it is attached.
+// Attaches a database named in the path on first use. DuckDB only reads files in the private file system that it has
+// been told of, so the file is registered before it is attached.
 async function attachDatabase(openStore: OpenStore, path: string): Promise<{ databaseName: string | undefined; tableName: string }> {
     const { databaseName, tableName } = resolveStorePath(path);
     if (databaseName == null || openStore.attachedDatabaseNames.has(databaseName)) return { databaseName, tableName };
     const databasePath = `opfs://${databaseName}.duckdb`; // 'resolveStorePath' allows only letters, digits, '_' and '-' in a name.
     await openStore.database.registerOPFSFileName(databasePath);
     await openStore.connection.query(`ATTACH '${databasePath}' AS ${quoteIdentifier(databaseName)}`);
-    await openStore.connection.query(`CREATE TABLE IF NOT EXISTS ${quoteIdentifier(databaseName)}.${OBJECTS_TABLE} ${OBJECTS_TABLE_COLUMNS_SQL}`);
     openStore.attachedDatabaseNames.add(databaseName);
     return { databaseName, tableName };
 }
