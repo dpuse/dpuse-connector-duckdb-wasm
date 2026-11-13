@@ -1,6 +1,6 @@
 {
     "name": "@dpuse/dpuse-connector-duckdb-wasm",
-    "version": "1.0.125",
+    "version": "1.0.126",
     "private": false,
     "description": "Stores data views for investigation in a DuckDB database saved in the browser (OPFS).",
     "license": "MIT",
@@ -61,7 +61,7 @@
         "test": "node -e \"import('@dpuse/dpuse-development').then(m => m.testProject())\""
     },
     "dependencies": {
-        "@dpuse/dpuse-shared": "^1.0.216",
+        "@dpuse/dpuse-shared": "^1.0.217",
         "@duckdb/duckdb-wasm": "1.33.1-dev110.0",
         "apache-arrow": "17.0.0"
     },

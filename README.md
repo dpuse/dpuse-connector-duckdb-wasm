@@ -88,7 +88,7 @@ License data is updated each time `npm run document` is run, using [license-chec
 
 | Dependency                                                   |     Version     | License(s) | Document                                                                      |
 | :----------------------------------------------------------- | :-------------: | :--------- | :---------------------------------------------------------------------------- |
-| [@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared) |     1.0.216     | MIT        | [LICENSE](licenses/downloads/@dpuse/dpuse-shared@1.0.216-LICENSE.txt)         |
+| [@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared) |     1.0.217     | MIT        | [LICENSE](licenses/downloads/@dpuse/dpuse-shared@1.0.217-LICENSE.txt)         |
 | [@duckdb/duckdb-wasm](https://github.com/duckdb/duckdb-wasm) | 1.33.1-dev110.0 | MIT        | [LICENSE](licenses/downloads/@duckdb/duckdb-wasm@1.33.1-dev110.0-LICENSE.txt) |
 | [apache-arrow](https://github.com/apache/arrow)              |     17.0.0      | Apache-2.0 | [LICENSE](licenses/downloads/apache-arrow@17.0.0-LICENSE.txt)                 |
 | [flatbuffers](https://github.com/google/flatbuffers)         |    24.12.23     | Apache-2.0 | [LICENSE](licenses/downloads/flatbuffers@24.12.23-LICENSE.txt)                |
@@ -99,7 +99,7 @@ License data is updated each time `npm run document` is run, using [license-chec
 
 The dependency tree below shows how each package in the table above is reached — direct and transitive — along with its installed version, release date, and update status. A package that does not ship itself, such as one whose parts are bundled separately, is left out and what ships beneath it is shown in its place. Packages flagged ❗ have a newer version available; ⚠️ indicates a package that hasn't been updated in the last 6 months or longer. Neither flag necessarily indicates a problem: we let new releases stabilise before upgrading, and some packages are mature and stable (have limited or no dependencies), so they require no active development.
 
-- **[@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared)** 1.0.216 — this month: 2026-11-13
+- **[@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared)** 1.0.217 — this month: 2026-11-13
     - **[valibot](https://github.com/open-circle/valibot)** 1.5.0 — 2 mths ago: 2026-09-09
 - **[@duckdb/duckdb-wasm](https://github.com/duckdb/duckdb-wasm)** 1.33.1-dev110.0 — this month: 2026-10-22 → latest: 1.33.1-dev57.0 — 4 mths ago: 2026-06-22 ❗
     - **[apache-arrow](https://github.com/apache/arrow)** 17.0.0 — 27 mths ago: 2024-07-16 ⚠️ → latest: 21.2.0 — 3 mths ago: 2026-07-21 ❗
@@ -120,8 +120,8 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 
 | Chunk/Module/File                                                             | Composition                                                                                     |
 | :---------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
-| **dist/dpuse-connector-duckdb-wasm.es.js**                                    | 266.0&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;56.7&nbsp;kB&nbsp;·&nbsp;100.0%&nbsp;of&nbsp;the&nbsp;build |
-| &nbsp;&nbsp;&nbsp;&nbsp;apache-arrow → ipc/reader.mjs + 84 more               | `██████████████░░░░░░`&nbsp;69.3%&nbsp;·&nbsp;184.2&nbsp;kB                                     |
+| **dist/dpuse-connector-duckdb-wasm.es.js**                                    | 266.1&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;56.7&nbsp;kB&nbsp;·&nbsp;100.0%&nbsp;of&nbsp;the&nbsp;build |
+| &nbsp;&nbsp;&nbsp;&nbsp;apache-arrow → ipc/reader.mjs + 84 more               | `██████████████░░░░░░`&nbsp;69.2%&nbsp;·&nbsp;184.2&nbsp;kB                                     |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ ipc/reader.mjs              | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.7%&nbsp;·&nbsp;12.4&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ type.mjs                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.2%&nbsp;·&nbsp;11.2&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ data.mjs                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;3.2%&nbsp;·&nbsp;8.6&nbsp;kB                                        |
@@ -177,7 +177,7 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ 33 smaller files            | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.8%&nbsp;·&nbsp;12.9&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;@duckdb/duckdb-wasm → dist/duckdb-browser.mjs         | `██░░░░░░░░░░░░░░░░░░`&nbsp;9.2%&nbsp;·&nbsp;24.5&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;src → index.ts + 1 more                               | `█░░░░░░░░░░░░░░░░░░░`&nbsp;7.0%&nbsp;·&nbsp;18.6&nbsp;kB                                       |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ index.ts                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.0%&nbsp;·&nbsp;10.7&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ index.ts                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.0%&nbsp;·&nbsp;10.8&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ duckdbSql.ts                | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;3.0%&nbsp;·&nbsp;7.9&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;@dpuse/dpuse-shared → dist/dpuse-shared.es.js         | `█░░░░░░░░░░░░░░░░░░░`&nbsp;3.7%&nbsp;·&nbsp;9.9&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;flatbuffers → mjs/builder.js + 3 more                 | `█░░░░░░░░░░░░░░░░░░░`&nbsp;3.7%&nbsp;·&nbsp;9.8&nbsp;kB                                        |

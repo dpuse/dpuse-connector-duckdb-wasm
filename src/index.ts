@@ -104,7 +104,7 @@ export class Connector implements ConnectorInterface {
     openStoreState: OpenStore | undefined;
     pendingCloseStore: Promise<void> | undefined;
     pendingOpenStore: Promise<OpenStoreResult> | undefined;
-    releaseLock: (() => void) | undefined;
+    releaseLock: (() => Promise<void>) | undefined;
 
     constructor(connectorUtilities: ConnectorUtilities, toolConfigs: ToolConfig[]) {
         this.connectorUtilities = connectorUtilities;
@@ -319,7 +319,7 @@ export class Connector implements ConnectorInterface {
         } catch (error) {
             throw normalizeToError(error);
         } finally {
-            this.releaseHeldLock();
+            await this.releaseHeldLock();
         }
     }
 
@@ -353,9 +353,11 @@ export class Connector implements ConnectorInterface {
         }
     }
 
-    private releaseHeldLock(): void {
-        this.releaseLock?.();
+    // Resolves once the lock is free for the next open.
+    private async releaseHeldLock(): Promise<void> {
+        const releaseLock = this.releaseLock;
         this.releaseLock = undefined;
+        await releaseLock?.();
     }
 }
 
