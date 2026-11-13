@@ -36,27 +36,27 @@ Connectors conform to a unified interface contract by implementing a specific su
 
 This connector is a Bidirectional connector that supports both read and write actions. Connectors can also function as a Source (read-only) or Destination (write-only), depending on the actions they support. The table below lists all connector actions and highlights those supported by this connector.
 
-| Action               | Supported |
-| :------------------- | :-------: |
-| Abort Operation      |           |
-| Audit Object Content |     ✓     |
-| Close Store          |     ✓     |
-| Create Object        |           |
-| Describe Connection  |           |
-| Drop Object          |     ✓     |
-| Find Object          |     ✓     |
-| Get Info             |           |
-| Get Readable Stream  |           |
-| Get Record           |           |
-| List Nodes           |     ✓     |
-| Load Object Records  |     ✓     |
-| Open Store           |     ✓     |
-| Preview Object       |     ✓     |
-| Query Records        |     ✓     |
-| Remove Records       |           |
-| Retrieve Chunks      |           |
-| Retrieve Records     |     ✓     |
-| Upsert Records       |           |
+| Action                        | Supported |
+| :---------------------------- | :-------: |
+| Audit Object Content          |     ✓     |
+| Close Store                   |     ✓     |
+| Create Object                 |           |
+| Describe Connection           |           |
+| Drop Object                   |     ✓     |
+| Find Object                   |     ✓     |
+| Get Info                      |           |
+| Get Readable Stream           |           |
+| Get Record                    |           |
+| Index Object Structure        |           |
+| List Nodes                    |     ✓     |
+| List Object Structure Entries |           |
+| Load Object Records           |     ✓     |
+| Open Store                    |     ✓     |
+| Preview Object                |     ✓     |
+| Query Records                 |     ✓     |
+| Remove Records                |           |
+| Retrieve Records              |     ✓     |
+| Upsert Records                |           |
 
 <!-- SUPPORTED_ACTIONS_END -->
 
@@ -120,7 +120,7 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 
 | Chunk/Module/File                                                             | Composition                                                                                     |
 | :---------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
-| **dist/dpuse-connector-duckdb-wasm.es.js**                                    | 265.7&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;56.7&nbsp;kB&nbsp;·&nbsp;100.0%&nbsp;of&nbsp;the&nbsp;build |
+| **dist/dpuse-connector-duckdb-wasm.es.js**                                    | 266.0&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;56.7&nbsp;kB&nbsp;·&nbsp;100.0%&nbsp;of&nbsp;the&nbsp;build |
 | &nbsp;&nbsp;&nbsp;&nbsp;apache-arrow → ipc/reader.mjs + 84 more               | `██████████████░░░░░░`&nbsp;69.3%&nbsp;·&nbsp;184.2&nbsp;kB                                     |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ ipc/reader.mjs              | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.7%&nbsp;·&nbsp;12.4&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ type.mjs                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.2%&nbsp;·&nbsp;11.2&nbsp;kB                                       |
@@ -152,7 +152,7 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/footer.mjs               | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.9%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor/typeassembler.mjs   | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.9%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor/iterator.mjs        | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.9%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ ipc/metadata/file.mjs       | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.9%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ ipc/metadata/file.mjs       | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.8%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ util/vector.mjs             | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.8%&nbsp;·&nbsp;2.2&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ row/struct.mjs              | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.8%&nbsp;·&nbsp;2.1&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/message.mjs              | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.8%&nbsp;·&nbsp;2.0&nbsp;kB                                        |
@@ -176,8 +176,8 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/floating-point.mjs       | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.3%&nbsp;·&nbsp;797&nbsp;B                                         |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ 33 smaller files            | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.8%&nbsp;·&nbsp;12.9&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;@duckdb/duckdb-wasm → dist/duckdb-browser.mjs         | `██░░░░░░░░░░░░░░░░░░`&nbsp;9.2%&nbsp;·&nbsp;24.5&nbsp;kB                                       |
-| &nbsp;&nbsp;&nbsp;&nbsp;src → index.ts + 1 more                               | `█░░░░░░░░░░░░░░░░░░░`&nbsp;6.9%&nbsp;·&nbsp;18.3&nbsp;kB                                       |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ index.ts                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;3.9%&nbsp;·&nbsp;10.5&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;src → index.ts + 1 more                               | `█░░░░░░░░░░░░░░░░░░░`&nbsp;7.0%&nbsp;·&nbsp;18.6&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ index.ts                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.0%&nbsp;·&nbsp;10.7&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ duckdbSql.ts                | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;3.0%&nbsp;·&nbsp;7.9&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;@dpuse/dpuse-shared → dist/dpuse-shared.es.js         | `█░░░░░░░░░░░░░░░░░░░`&nbsp;3.7%&nbsp;·&nbsp;9.9&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;flatbuffers → mjs/builder.js + 3 more                 | `█░░░░░░░░░░░░░░░░░░░`&nbsp;3.7%&nbsp;·&nbsp;9.8&nbsp;kB                                        |

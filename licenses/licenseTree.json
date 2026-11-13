@@ -1,10 +1,10 @@
 {
-  "version": "1.0.123",
+  "version": "1.0.124",
   "name": "@dpuse/dpuse-connector-duckdb-wasm",
   "dependencies": {
     "@dpuse/dpuse-development": {
-      "version": "1.0.149",
-      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-development/-/dpuse-development-1.0.149.tgz",
+      "version": "1.0.151",
+      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-development/-/dpuse-development-1.0.151.tgz",
       "overridden": false,
       "dependencies": {
         "@dpuse/dpuse-shared": {

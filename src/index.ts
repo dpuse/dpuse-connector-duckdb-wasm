@@ -102,12 +102,14 @@ export class Connector implements ConnectorInterface {
     private readonly connectorUtilities: ConnectorUtilities;
     private readonly toolConfigs;
     openStoreState: OpenStore | undefined;
+    pendingCloseStore: Promise<void> | undefined;
     pendingOpenStore: Promise<OpenStoreResult> | undefined;
     releaseLock: (() => void) | undefined;
 
     constructor(connectorUtilities: ConnectorUtilities, toolConfigs: ToolConfig[]) {
         this.connectorUtilities = connectorUtilities;
         this.openStoreState = undefined;
+        this.pendingCloseStore = undefined;
         this.pendingOpenStore = undefined;
         this.releaseLock = undefined;
         this.toolConfigs = toolConfigs;
@@ -146,25 +148,15 @@ export class Connector implements ConnectorInterface {
         }
     }
 
-    // Ending DuckDB's worker is what closes its files, so another tab can open the store. The worker is ended even when
-    // its connection fails to close, such as during a load. Otherwise it would keep its files open after the lock is
-    // released, and the next open would fail.
+    // A close takes a moment, because DuckDB's worker has to end. An open that arrives meanwhile, such as when a screen
+    // closes the store and the next one opens it, waits for the close, so it does not find the lock still held.
     async closeStore(): Promise<void> {
-        const openStore = this.openStoreState;
-        this.openStoreState = undefined;
+        const pendingCloseStore = this.endStore();
+        this.pendingCloseStore = pendingCloseStore;
         try {
-            if (openStore) {
-                try {
-                    await openStore.connection.close();
-                } finally {
-                    await openStore.database.terminate();
-                }
-                await removeScratchFolders();
-            }
-        } catch (error) {
-            throw normalizeToError(error);
+            await pendingCloseStore;
         } finally {
-            this.releaseHeldLock();
+            if (this.pendingCloseStore === pendingCloseStore) this.pendingCloseStore = undefined;
         }
     }
 
@@ -236,6 +228,11 @@ export class Connector implements ConnectorInterface {
     // first and report the store as open in another tab.
     async openStore(): Promise<OpenStoreResult> {
         if (this.openStoreState) return { storeStateId: 'ready' };
+        try {
+            await this.pendingCloseStore;
+        } catch {
+            // A close that failed has still released the lock.
+        }
         this.pendingOpenStore ??= this.startStore();
         try {
             return await this.pendingOpenStore;
@@ -303,6 +300,28 @@ export class Connector implements ConnectorInterface {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+    // Ending DuckDB's worker is what closes its files, so another tab can open the store. The worker is ended even when
+    // its connection fails to close, such as during a load. Otherwise it would keep its files open after the lock is
+    // released, and the next open would fail.
+    private async endStore(): Promise<void> {
+        const openStore = this.openStoreState;
+        this.openStoreState = undefined;
+        try {
+            if (openStore) {
+                try {
+                    await openStore.connection.close();
+                } finally {
+                    await openStore.database.terminate();
+                }
+                await removeScratchFolders();
+            }
+        } catch (error) {
+            throw normalizeToError(error);
+        } finally {
+            this.releaseHeldLock();
+        }
+    }
 
     private establishOpenStore(): OpenStore {
         if (!this.openStoreState) throw new Error('The store is not open.');

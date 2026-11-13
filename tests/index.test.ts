@@ -91,6 +91,24 @@ describe('Connector', () => {
         expect(openDuckDB).toHaveBeenCalledOnce();
     });
 
+    it('waits for a close still in progress before opening, so the lock is free', async () => {
+        const connector = new Connector({} as never, []);
+        const termination = Promise.withResolvers<undefined>();
+        connector.openStoreState = { attachedDatabases: new Map(), connection: { close: () => Promise.resolve() }, database: { terminate: () => termination.promise } } as never;
+        const startStore = vi.fn(() => Promise.resolve({ storeStateId: 'ready' as const }));
+        Object.assign(connector, { startStore });
+
+        const closing = connector.closeStore();
+        const opening = connector.openStore();
+        await Promise.resolve();
+        expect(startStore).not.toHaveBeenCalled();
+        termination.resolve(undefined);
+
+        await expect(opening).resolves.toEqual({ storeStateId: 'ready' });
+        await closing;
+        expect(startStore).toHaveBeenCalledOnce();
+    });
+
     it('starts DuckDB once for requests that arrive together', async () => {
         const connector = new Connector({} as never, []);
         const startStore = vi.fn(() => Promise.resolve({ storeStateId: 'ready' as const }));
