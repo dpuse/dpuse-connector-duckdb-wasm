@@ -29,6 +29,18 @@ type QueryValue = boolean | number | string | null;
 
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+// The database DuckDB opens with the store, used by a path that names no database. A path that names it, such as
+// '/default/orders', reaches the same table as 'orders'.
+export const DEFAULT_DATABASE_NAME = 'default';
+
+// Lists the store's database files. DuckDB keeps them in a folder of its own in the private file system, and holds a new
+// one in a scratch area until it writes it out, so only DuckDB can list them all.
+export const DATABASE_FILES_SQL = "SELECT file FROM glob('opfs://*.duckdb') ORDER BY file";
+
+// Names a table's columns, with the type each was created with, in the database given or, when it is null, in the
+// store's default database.
+export const TABLE_COLUMNS_SQL = 'SELECT column_name, data_type FROM duckdb_columns() WHERE table_name = ? AND database_name = coalesce(?, current_database()) ORDER BY column_index';
+
 // Counts the tables with the name given, in the database given or, when it is null, in the store's default database.
 export const TABLE_COUNT_SQL = 'SELECT count(*) FROM duckdb_tables() WHERE table_name = ? AND database_name = coalesce(?, current_database())';
 
@@ -104,14 +116,51 @@ export function fromStoredValue(value: unknown, storedColumn: StoredColumn | und
     return typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string' ? value : null;
 }
 
+// Reads one chunk of a table's records in rowid order, with each record's rowid first. A chunk starts after the last
+// rowid of the one before, so a chunk far into the table is found as quickly as the first.
+export function constructRecordChunkSql(path: string, chunkSize: number, hasAfterRowId: boolean): string {
+    const whereSql = hasAfterRowId ? ' WHERE rowid > CAST(? AS BIGINT)' : '';
+    return `SELECT rowid, * FROM ${constructTableReference(path)}${whereSql} ORDER BY rowid LIMIT ${String(checkCount(chunkSize))}`;
+}
+
+// The opposite of 'resolveColumnType'. Whole numbers of every size are kept as 'BIGINT', so a whole number column reads
+// as integers, with any beyond ±2^53 kept exact by 'fromStoredValue'. A column of any other type, from a table the store
+// did not create, has no known type, so its type is worked out from its values.
+export function identifyColumnType(dataType: string): Pick<ObjectColumnConfig, 'dataSubtypeId' | 'dataTypeId'> {
+    switch (dataType) {
+        case 'BIGINT':
+            return { dataSubtypeId: 'integer', dataTypeId: 'numeric' };
+        case 'BOOLEAN':
+            return { dataSubtypeId: undefined, dataTypeId: 'boolean' };
+        case 'DATE':
+            return { dataSubtypeId: 'date', dataTypeId: 'temporal' };
+        case 'DOUBLE':
+            return { dataSubtypeId: 'decimal', dataTypeId: 'numeric' };
+        case 'TIME':
+            return { dataSubtypeId: 'time', dataTypeId: 'temporal' };
+        case 'TIMESTAMP':
+            return { dataSubtypeId: 'dateTime', dataTypeId: 'temporal' };
+        case 'VARCHAR':
+            return { dataSubtypeId: undefined, dataTypeId: 'string' };
+        default:
+            return { dataSubtypeId: undefined, dataTypeId: 'unknown' };
+    }
+}
+
 export function quoteIdentifier(name: string): string {
     return `"${name.replaceAll('"', '""')}"`;
 }
 
 // A table in the store's default database is named on its own. One in another database is named with its database.
 export function constructTableReference(path: string): string {
-    const { databaseName, tableName } = resolveStorePath(path);
+    const { databaseName, tableName } = resolveStoreTable(path);
     return databaseName == null ? quoteIdentifier(tableName) : `${quoteIdentifier(databaseName)}.${quoteIdentifier(tableName)}`;
+}
+
+// The database a path names, undefined for the default database, which DuckDB opens with the store rather than attaches.
+export function resolveStoreTable(path: string): { databaseName: string | undefined; tableName: string } {
+    const { databaseName, tableName } = resolveStorePath(path);
+    return { databaseName: databaseName === DEFAULT_DATABASE_NAME ? undefined : databaseName, tableName };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import type { ObjectColumnConfig, QueryRecordsOptions, StoreRecord } from '@dpus
 
 // ── Local Framework
 import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoredColumns, constructStoreQuery } from '@/duckdbSql';
+import { constructRecordChunkSql, identifyColumnType, TABLE_COLUMNS_SQL } from '@/duckdbSql';
 import { constructTableReference, fromStoredValue, STAGING_TABLE, TABLE_COUNT_SQL, TABLE_NAMES_SQL } from '@/duckdbSql';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -189,6 +190,40 @@ describe('duckdbSql attached database round trip', () => {
     });
 });
 
+describe('duckdbSql source reading round trip', () => {
+    it('gives back the type each column was loaded as, so a table read on its own has its types', () => {
+        const columnConfigs = [
+            { dataSubtypeId: 'integer', dataTypeId: 'numeric' },
+            { dataSubtypeId: 'decimal', dataTypeId: 'numeric' },
+            { dataSubtypeId: undefined, dataTypeId: 'boolean' },
+            { dataSubtypeId: 'date', dataTypeId: 'temporal' },
+            { dataSubtypeId: 'time', dataTypeId: 'temporal' },
+            { dataSubtypeId: 'dateTime', dataTypeId: 'temporal' },
+            { dataSubtypeId: undefined, dataTypeId: 'string' }
+        ] as ObjectColumnConfig[];
+        connection.query('ATTACH IF NOT EXISTS \':memory:\' AS "typed"');
+        load([], constructStoredColumns(columnConfigs), '/typed/everything');
+
+        const statement = connection.prepare(TABLE_COLUMNS_SQL);
+        const table = statement.query('everything', 'typed');
+        statement.close();
+        const columnTypes = Array.from({ length: table.numRows }, (_value, rowIndex) => identifyColumnType(String(table.getChildAt(1)?.get(rowIndex))));
+
+        expect(columnTypes).toEqual(columnConfigs.map(({ dataSubtypeId, dataTypeId }) => ({ dataSubtypeId, dataTypeId })));
+    });
+
+    it('reads a table a chunk at a time in the order it was loaded, in the default database or another', () => {
+        const numberColumns = constructStoredColumns([{ dataSubtypeId: 'integer', dataTypeId: 'numeric' }] as ObjectColumnConfig[]);
+        connection.query('ATTACH IF NOT EXISTS \':memory:\' AS "chunked"');
+        load([[1], [2], [3]], numberColumns, 'chunked');
+        load([[4], [5], [6]], numberColumns, '/chunked/values');
+
+        expect(readChunks('chunked')).toEqual([[1, 2], [3]]);
+        expect(readChunks('/chunked/values')).toEqual([[4, 5], [6]]);
+        expect(readChunks('/default/chunked')).toEqual(readChunks('chunked'));
+    });
+});
+
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 async function constructConnection(): Promise<Connection> {
@@ -222,6 +257,21 @@ function countTables(tableName: string, databaseName: string | null): number {
     const table = statement.query(tableName, databaseName);
     statement.close();
     return Number(table.getChildAt(0)?.get(0));
+}
+
+// Reads the values of a one-column table two records at a time, each chunk starting after the last rowid of the one
+// before.
+function readChunks(path: string): unknown[][] {
+    const chunks: unknown[][] = [];
+    let afterRowId: number | undefined;
+    for (;;) {
+        const statement = connection.prepare(constructRecordChunkSql(path, 2, afterRowId != null));
+        const table = afterRowId == null ? statement.query() : statement.query(afterRowId);
+        statement.close();
+        if (table.numRows === 0) return chunks;
+        chunks.push(Array.from({ length: table.numRows }, (_value, rowIndex) => Number(table.getChildAt(1)?.get(rowIndex))));
+        afterRowId = Number(table.getChildAt(0)?.get(table.numRows - 1));
+    }
 }
 
 function nameTables(databaseName: string | null): string[] {
