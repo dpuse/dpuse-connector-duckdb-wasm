@@ -115,8 +115,9 @@ export class Connector implements ConnectorInterface {
     // Each database is a folder at the top, holding its tables. A database is found from its file in the private file
     // system, so one not attached since the store opened is listed too.
     async listNodes(options: ListNodesOptions): Promise<ListNodesResult> {
-        const openStore = this.establishOpenStore();
         try {
+            await this.openStoreForListing();
+            const openStore = this.establishOpenStore();
             const connectionNodeConfigs = options.folderPath === '' ? await listTopNodes(openStore) : await listDatabaseNodes(openStore, options.folderPath);
             return { cursor: undefined, connectionNodeConfigs, isMore: false, totalCount: connectionNodeConfigs.length };
         } catch (error) {
@@ -191,6 +192,14 @@ export class Connector implements ConnectorInterface {
     private establishOpenStore(): OpenStore {
         if (!this.openStoreState) throw new Error('The store is not open.');
         return this.openStoreState;
+    }
+
+    // Items can be listed before any data view has opened the store, so listing opens it first. The store then stays open
+    // until it is closed, as it does for a data view.
+    private async openStoreForListing(): Promise<void> {
+        const { storeStateId } = await this.openStore();
+        if (storeStateId === 'heldElsewhere') throw new Error('The store is open in another tab.');
+        if (storeStateId === 'unavailable') throw new Error('This browser gives no storage to keep the store in, as in some private windows.');
     }
 
     private releaseHeldLock(): void {

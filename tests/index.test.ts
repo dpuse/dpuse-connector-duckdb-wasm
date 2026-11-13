@@ -12,7 +12,6 @@ describe('Connector', () => {
 
         await expect(connector.queryRecords(queryOptions)).rejects.toThrow('The store is not open.');
         await expect(connector.dropObject({ path: 'sales' })).rejects.toThrow('The store is not open.');
-        await expect(connector.listNodes({ folderPath: '' })).rejects.toThrow('The store is not open.');
     });
 
     it('closes without error when the store was never opened', async () => {
@@ -76,6 +75,31 @@ describe('Connector', () => {
             const { connector } = constructListingConnector({ default: [] });
 
             await expect(connector.listNodes({ folderPath: '/sales/returns' })).rejects.toThrow("Encountered invalid folder path '/sales/returns'.");
+        });
+
+        it('opens a closed store before listing it', async () => {
+            const { connector } = constructListingConnector({ default: ['orders'] });
+            const { openStoreState } = connector;
+            connector.openStoreState = undefined;
+            const openStore = vi.spyOn(connector, 'openStore').mockImplementation(() => {
+                connector.openStoreState = openStoreState;
+                return Promise.resolve({ storeStateId: 'ready' });
+            });
+
+            const result = await connector.listNodes({ folderPath: '/default' });
+
+            expect(openStore).toHaveBeenCalledOnce();
+            expect(result.connectionNodeConfigs).toEqual([expect.objectContaining({ id: '/default/orders' })]);
+        });
+
+        it.each([
+            { message: 'The store is open in another tab.', storeStateId: 'heldElsewhere' as const },
+            { message: 'This browser gives no storage to keep the store in, as in some private windows.', storeStateId: 'unavailable' as const }
+        ])('refuses to list when the store cannot be opened because it is $storeStateId', async ({ message, storeStateId }) => {
+            const connector = new Connector({} as never, []);
+            vi.spyOn(connector, 'openStore').mockResolvedValue({ storeStateId });
+
+            await expect(connector.listNodes({ folderPath: '' })).rejects.toThrow(message);
         });
     });
 });
