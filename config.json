@@ -9,6 +9,7 @@
     "actionNames": [
         "closeStore",
         "dropObject",
+        "listNodes",
         "loadObjectRecords",
         "openStore",
         "queryRecords"
@@ -34,5 +35,5 @@
     "vendorAccountURL": null,
     "vendorDocumentationURL": "https://duckdb.org/docs/stable/clients/wasm/overview",
     "vendorHomeURL": "https://duckdb.org/",
-    "version": "1.0.120"
+    "version": "1.0.121"
 }

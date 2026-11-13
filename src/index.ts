@@ -11,9 +11,12 @@ import { AsyncDuckDB, type AsyncDuckDBConnection, DuckDBAccessMode, VoidLogger }
 // ── DPUse Framework
 import { acquireWebLock, normalizeToError, resolveRequestSignal, resolveStorePath } from '@dpuse/dpuse-shared';
 import type {
+    ConnectionNodeConfig,
     ConnectorInterface,
     ConnectorUtilities,
     DropObjectOptions,
+    ListNodesOptions,
+    ListNodesResult,
     LoadObjectRecordsOptions,
     LoadObjectRecordsResult,
     OpenStoreResult,
@@ -35,7 +38,8 @@ import {
     quoteIdentifier,
     STAGING_TABLE,
     type StoredColumn,
-    TABLE_COUNT_SQL
+    TABLE_COUNT_SQL,
+    TABLE_NAMES_SQL
 } from '@/duckdbSql';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -48,7 +52,9 @@ interface OpenStore {
 
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-const DATABASE_PATH = 'opfs://dpuse-connector-duckdb-wasm.duckdb'; // The default database, used by a path that names no database.
+const DATABASE_FILE_PATTERN = /^([\w-]+)\.duckdb$/u; // A database's file in the private file system. Its write-ahead log, '….duckdb.wal', does not match.
+const DEFAULT_DATABASE_NAME = 'default'; // Used by a path that names no database, so 'orders' and '/default/orders' are the same table.
+const DATABASE_PATH = `opfs://${DEFAULT_DATABASE_NAME}.duckdb`; // DuckDB names the database it opens after its file, so the default database is 'default'.
 const LOCK_NAME = 'dpuse-connector-duckdb-wasm'; // Held by the one tab that has the store open.
 const TRUSTED_TYPES_POLICY_NAME = 'dpuse-connector-duckdb-wasm'; // Must be listed in the app's CSP 'trusted-types' directive.
 const WASM_FILE_NAME = 'duckdb-base.wasm';
@@ -101,6 +107,18 @@ export class Connector implements ConnectorInterface {
         try {
             await attachDatabase(openStore, options.path);
             await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
+        } catch (error) {
+            throw normalizeToError(error);
+        }
+    }
+
+    // Each database is a folder at the top, holding its tables. A database is found from its file in the private file
+    // system, so one not attached since the store opened is listed too.
+    async listNodes(options: ListNodesOptions): Promise<ListNodesResult> {
+        const openStore = this.establishOpenStore();
+        try {
+            const connectionNodeConfigs = options.folderPath === '' ? await listTopNodes(openStore) : await listDatabaseNodes(openStore, options.folderPath);
+            return { cursor: undefined, connectionNodeConfigs, isMore: false, totalCount: connectionNodeConfigs.length };
         } catch (error) {
             throw normalizeToError(error);
         }
@@ -183,16 +201,58 @@ export class Connector implements ConnectorInterface {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-// Attaches a database named in the path on first use. DuckDB only reads files in the private file system that it has
-// been told of, so the file is registered before it is attached.
 async function attachDatabase(openStore: OpenStore, path: string): Promise<{ databaseName: string | undefined; tableName: string }> {
     const { databaseName, tableName } = resolveStorePath(path);
-    if (databaseName == null || openStore.attachedDatabaseNames.has(databaseName)) return { databaseName, tableName };
-    const databasePath = `opfs://${databaseName}.duckdb`; // 'resolveStorePath' allows only letters, digits, '_' and '-' in a name.
+    if (databaseName != null) await attachNamedDatabase(openStore, databaseName);
+    return { databaseName, tableName };
+}
+
+// Attaches a named database on first use. DuckDB only reads files in the private file system that it has been told of,
+// so the file is registered before it is attached. The default database is open from the start.
+async function attachNamedDatabase(openStore: OpenStore, databaseName: string): Promise<void> {
+    if (databaseName === DEFAULT_DATABASE_NAME || openStore.attachedDatabaseNames.has(databaseName)) return;
+    const databasePath = `opfs://${databaseName}.duckdb`; // 'resolveStorePath' and the folder path check allow only letters, digits, '_' and '-' in a name.
     await openStore.database.registerOPFSFileName(databasePath);
     await openStore.connection.query(`ATTACH '${databasePath}' AS ${quoteIdentifier(databaseName)}`);
     openStore.attachedDatabaseNames.add(databaseName);
-    return { databaseName, tableName };
+}
+
+// A database's folder is named and identified by the database's name, which a path to one of its tables starts with.
+function constructFolderNodeConfig(databaseName: string, childCount: number): ConnectionNodeConfig {
+    return {
+        childCount,
+        description: '',
+        extension: undefined,
+        folderPath: '',
+        icon: null,
+        iconDark: null,
+        id: databaseName,
+        label: databaseName,
+        lastModifiedAt: undefined,
+        mimeType: undefined,
+        name: databaseName,
+        size: undefined,
+        typeId: 'folder'
+    };
+}
+
+// A table is identified by its path, as the other actions take it.
+function constructObjectNodeConfig(folderPath: string, tableName: string, path: string): ConnectionNodeConfig {
+    return {
+        childCount: undefined,
+        description: '',
+        extension: undefined,
+        folderPath,
+        icon: null,
+        iconDark: null,
+        id: path,
+        label: tableName,
+        lastModifiedAt: undefined,
+        mimeType: undefined,
+        name: tableName,
+        size: undefined,
+        typeId: 'object'
+    };
 }
 
 function createWorkerScriptURLPolicy(): Pick<TrustedTypePolicy, 'createScriptURL'> | undefined {
@@ -230,6 +290,45 @@ async function removeScratchFolders(): Promise<void> {
     } catch {
         // No folder to remove, or not removable yet.
     }
+}
+
+// A folder path names one database, as '/database'. Attaching a database with no file would create one, so a database
+// with no file is refused.
+async function listDatabaseNodes(openStore: OpenStore, folderPath: string): Promise<ConnectionNodeConfig[]> {
+    const databaseName = /^\/([\w-]+)$/u.exec(folderPath)?.[1];
+    if (databaseName == null) throw new Error(`Encountered invalid folder path '${folderPath}'.`);
+    const databaseNames = await listDatabaseNames();
+    if (!databaseNames.includes(databaseName)) throw new Error(`Database '${databaseName}' does not exist.`);
+    await attachNamedDatabase(openStore, databaseName);
+    const tableNames = await listTableNames(openStore, databaseName);
+    return tableNames.map((tableName) => constructObjectNodeConfig(folderPath, tableName, `${folderPath}/${tableName}`));
+}
+
+async function listDatabaseNames(): Promise<string[]> {
+    const rootFolder = await navigator.storage.getDirectory();
+    const databaseNames: string[] = [];
+    for await (const [fileName, handle] of rootFolder.entries()) {
+        const databaseName = handle.kind === 'file' ? DATABASE_FILE_PATTERN.exec(fileName)?.[1] : undefined;
+        if (databaseName != null) databaseNames.push(databaseName);
+    }
+    return databaseNames.toSorted((left, right) => left.localeCompare(right));
+}
+
+async function listTableNames(openStore: OpenStore, databaseName: string): Promise<string[]> {
+    const table = await runStatement(openStore.connection, TABLE_NAMES_SQL, [databaseName]);
+    return Array.from({ length: table.numRows }, (_unused, rowIndex) => String(table.getChildAt(0)?.get(rowIndex)));
+}
+
+// Databases are attached one at a time, because they share the store's one connection.
+async function listTopNodes(openStore: OpenStore): Promise<ConnectionNodeConfig[]> {
+    const databaseNames = await listDatabaseNames();
+    const folderNodeConfigs: ConnectionNodeConfig[] = [];
+    for (const databaseName of databaseNames) {
+        await attachNamedDatabase(openStore, databaseName);
+        const tableNames = await listTableNames(openStore, databaseName);
+        folderNodeConfigs.push(constructFolderNodeConfig(databaseName, tableNames.length));
+    }
+    return folderNodeConfigs;
 }
 
 function readRecords(table: Table, resultColumns: (StoredColumn | undefined)[]): StoreRecord[] {

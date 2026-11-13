@@ -35,6 +35,10 @@ export const TABLE_COUNT_SQL = 'SELECT count(*) FROM duckdb_tables() WHERE table
 // Each chunk of a load goes into this table first, then into the object's table with each value cast to its type.
 export const STAGING_TABLE = '_dpuse_staging';
 
+// Names the store's tables in the database given or, when it is null, in the store's default database. The staging table
+// is left out, because it holds a load's chunk, not a data view.
+export const TABLE_NAMES_SQL = `SELECT table_name FROM duckdb_tables() WHERE database_name = coalesce(?, current_database()) AND NOT temporary AND table_name <> '${STAGING_TABLE}' ORDER BY table_name`;
+
 const LIKE_ESCAPE_SQL = String.raw`ESCAPE '\'`; // Lets a filter match '%' and '_' as written, not as wildcards.
 
 const MICROSECONDS_PER_MILLISECOND = 1000;

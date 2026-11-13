@@ -9,7 +9,7 @@ import type { ObjectColumnConfig, QueryRecordsOptions, StoreRecord } from '@dpus
 
 // ── Local Framework
 import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoredColumns, constructStoreQuery } from '@/duckdbSql';
-import { constructTableReference, fromStoredValue, STAGING_TABLE, TABLE_COUNT_SQL } from '@/duckdbSql';
+import { constructTableReference, fromStoredValue, STAGING_TABLE, TABLE_COUNT_SQL, TABLE_NAMES_SQL } from '@/duckdbSql';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -172,6 +172,21 @@ describe('duckdbSql attached database round trip', () => {
         expect(countTables('counted', 'archive')).toBe(1);
         expect(countTables('missing', null)).toBe(0);
     });
+
+    it("names one database's tables in order, leaving out the staging table and other databases' tables", () => {
+        const numberColumns = constructStoredColumns([{ dataSubtypeId: 'integer', dataTypeId: 'numeric' }] as ObjectColumnConfig[]);
+        connection.query('ATTACH IF NOT EXISTS \':memory:\' AS "listed"');
+        load([[1]], numberColumns, '/listed/returns');
+        load([[1]], numberColumns, '/listed/invoices');
+        load([[1]], numberColumns, 'shipments');
+        connection.query(`CREATE TABLE IF NOT EXISTS ${STAGING_TABLE} (c0 INTEGER)`); // As a load leaves it between chunks.
+
+        expect(nameTables('listed')).toEqual(['invoices', 'returns']);
+        expect(nameTables(null)).toContain('shipments');
+        expect(nameTables(null)).not.toContain(STAGING_TABLE);
+        expect(nameTables(null)).not.toContain('invoices');
+        connection.query(`DROP TABLE ${STAGING_TABLE}`);
+    });
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -207,6 +222,13 @@ function countTables(tableName: string, databaseName: string | null): number {
     const table = statement.query(tableName, databaseName);
     statement.close();
     return Number(table.getChildAt(0)?.get(0));
+}
+
+function nameTables(databaseName: string | null): string[] {
+    const statement = connection.prepare(TABLE_NAMES_SQL);
+    const table = statement.query(databaseName);
+    statement.close();
+    return Array.from({ length: table.numRows }, (_value, rowIndex) => String(table.getChildAt(0)?.get(rowIndex)));
 }
 
 function query(options: Partial<QueryRecordsOptions>, storedColumns = STORED_COLUMNS): StoreRecord[] {
