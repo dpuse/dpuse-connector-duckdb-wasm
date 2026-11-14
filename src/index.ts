@@ -27,6 +27,7 @@ import type {
     LoadObjectRecordsOptions,
     LoadObjectRecordsResult,
     ObjectColumnConfig,
+    OpenStoreOptions,
     OpenStoreResult,
     PreviewObjectOptions,
     PreviewObjectResult,
@@ -226,14 +227,14 @@ export class Connector implements ConnectorInterface {
 
     // Requests that arrive while DuckDB is starting share the one start. A second start would find the lock taken by the
     // first and report the store as open in another tab.
-    async openStore(): Promise<OpenStoreResult> {
+    async openStore(options: OpenStoreOptions = {}): Promise<OpenStoreResult> {
         if (this.openStoreState) return { storeStateId: 'ready' };
         try {
             await this.pendingCloseStore;
         } catch {
             // A close that failed has still released the lock.
         }
-        this.pendingOpenStore ??= this.startStore();
+        this.pendingOpenStore ??= this.startStore(options.takeOver === true);
         try {
             return await this.pendingOpenStore;
         } finally {
@@ -338,9 +339,12 @@ export class Connector implements ConnectorInterface {
     }
 
     // Waits for the lock, so the store is only ever started by the tab that holds it.
-    private async startStore(): Promise<OpenStoreResult> {
+    private async startStore(shouldTakeOver: boolean): Promise<OpenStoreResult> {
         if (!(await isPrivateFileSystemAvailable())) return { storeStateId: 'unavailable' };
-        const releaseLock = await acquireWebLock(LOCK_NAME); // Held until the store closes.
+        const onLost = (): void => {
+            void this.closeStoreAfterTakeover();
+        };
+        const releaseLock = await acquireWebLock(LOCK_NAME, { onLost, takeOver: shouldTakeOver }); // Held until the store closes.
         if (releaseLock == null) return { storeStateId: 'heldElsewhere' };
         this.releaseLock = releaseLock;
         try {
@@ -350,6 +354,17 @@ export class Connector implements ConnectorInterface {
         } catch (error) {
             await this.closeStore();
             throw normalizeToError(error);
+        }
+    }
+
+    // When another tab takes the lock over, this tab ends DuckDB, which finishes any write and frees the files for that
+    // tab. Its start waits for them. Nothing waits on this close, so a failure is not thrown, and the next open reports
+    // any problem with the files.
+    private async closeStoreAfterTakeover(): Promise<void> {
+        try {
+            await this.closeStore();
+        } catch {
+            // Already closed as far as it can be.
         }
     }
 

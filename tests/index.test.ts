@@ -39,6 +39,7 @@ vi.mock('@duckdb/duckdb-wasm', () => ({
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 const DAY = 86_400_000;
+const NODE_LOCKS = navigator.locks; // Node's own Web Locks, which the tabs in a takeover share as browser tabs do.
 const PREVIEW_OPTIONS = { chunkSize: undefined, dataFormatId: undefined, encodingId: undefined, extension: undefined, mimeType: undefined, parserId: undefined, valueDelimiterId: undefined };
 const READ_OPTIONS = { chunkSize: 2, dataFormatId: 'unknown' as const, encodingId: undefined, parserId: undefined, valueDelimiterId: undefined };
 
@@ -81,6 +82,22 @@ describe('Connector', () => {
 
         await expect(new Connector({} as never, []).openStore()).resolves.toEqual({ storeStateId: 'ready' });
         expect(openDuckDB).toHaveBeenCalledTimes(2);
+    });
+
+    it('takes the store over from the tab holding it, which ends DuckDB to free the files', async () => {
+        stubBrowser(NODE_LOCKS);
+        openDuckDB.mockResolvedValue();
+        const holdingConnector = new Connector({} as never, []);
+        const takingConnector = new Connector({} as never, []);
+        await expect(holdingConnector.openStore()).resolves.toEqual({ storeStateId: 'ready' });
+
+        await expect(takingConnector.openStore()).resolves.toEqual({ storeStateId: 'heldElsewhere' });
+        await expect(takingConnector.openStore({ takeOver: true })).resolves.toEqual({ storeStateId: 'ready' });
+
+        await vi.waitFor(() => {
+            expect(holdingConnector.openStoreState).toBeUndefined();
+        });
+        await takingConnector.closeStore();
     });
 
     it('fails at once when DuckDB fails to start for any other reason', async () => {
@@ -318,10 +335,11 @@ describe('Connector', () => {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-// The browser features DuckDB's start needs: a private file system, Web Locks and workers.
-function stubBrowser(): void {
+// The browser features DuckDB's start needs: a private file system, Web Locks and workers. The Web Locks grant every
+// request unless real ones are given.
+function stubBrowser(locks?: unknown): void {
     vi.stubGlobal('navigator', {
-        locks: { request: (_name: string, _options: unknown, grant: (lock: unknown) => Promise<void> | undefined) => grant({}) },
+        locks: locks ?? { request: (_name: string, _options: unknown, grant: (lock: unknown) => Promise<void> | undefined) => grant({}) },
         storage: { getDirectory: () => Promise.resolve({ getDirectoryHandle: () => Promise.reject(new Error('Not found.')) }) }
     });
     vi.stubGlobal(
