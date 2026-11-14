@@ -9,7 +9,7 @@ import type { Table } from 'apache-arrow';
 import { AsyncDuckDB, type AsyncDuckDBConnection, DuckDBAccessMode, VoidLogger } from '@duckdb/duckdb-wasm';
 
 // ── DPUse Framework
-import { acquireWebLock, convertStoreRecordToParsedRecord, normalizeToError, resolveRequestSignal } from '@dpuse/dpuse-shared';
+import { acquireWebLock, constructStoreError, convertStoreRecordToParsedRecord, findStoreErrorId } from '@dpuse/dpuse-shared';
 import type {
     AuditObjectContentOptions,
     AuditObjectContentResult,
@@ -40,6 +40,7 @@ import type {
     StoreRecord,
     ToolConfig
 } from '@dpuse/dpuse-shared';
+import { normalizeToError, resolveRequestSignal } from '@dpuse/dpuse-shared';
 
 // ── Local Framework
 import {
@@ -82,6 +83,7 @@ interface SourceTable {
 const DATABASE_FILE_PATTERN = /^opfs:\/\/([\w-]+)\.duckdb$/u; // A database's file, as DuckDB lists it.
 const DATABASE_PATH = `opfs://${DEFAULT_DATABASE_NAME}.duckdb`;
 const DEFAULT_CHUNK_SIZE = 10_000; // Records read at a time by an audit or a retrieve.
+const HELD_ELSEWHERE_MESSAGE = 'The store is open in another tab or window.';
 const LOCK_NAME = 'dpuse-connector-duckdb-wasm'; // Held by the one tab that has the store open.
 const PREVIEW_RECORD_COUNT = 50;
 const START_ATTEMPT_COUNT = 10; // Starts tried while an ended worker still holds the database's files.
@@ -106,6 +108,7 @@ export class Connector implements ConnectorInterface {
     pendingCloseStore: Promise<void> | undefined;
     pendingOpenStore: Promise<OpenStoreResult> | undefined;
     releaseLock: (() => Promise<void>) | undefined;
+    storeWasTakenOver: boolean; // Another tab took the store, so this tab says so until it opens the store again.
 
     constructor(connectorUtilities: ConnectorUtilities, toolConfigs: ToolConfig[]) {
         this.connectorUtilities = connectorUtilities;
@@ -113,6 +116,7 @@ export class Connector implements ConnectorInterface {
         this.pendingCloseStore = undefined;
         this.pendingOpenStore = undefined;
         this.releaseLock = undefined;
+        this.storeWasTakenOver = false;
         this.toolConfigs = toolConfigs;
     }
 
@@ -145,7 +149,7 @@ export class Connector implements ConnectorInterface {
             const { columnConfigs } = columnAuditor.completeAudit();
             return { contentAuditConfig: constructContentAuditConfig(asAt, startedAt, columnConfigs, recordCount, isComplete), hasHeaders: false }; // A table's columns are named by the database, not by a header record.
         } catch (error) {
-            throw normalizeToError(error);
+            throw this.normalizeActionError(error);
         }
     }
 
@@ -168,7 +172,7 @@ export class Connector implements ConnectorInterface {
             await attachDatabase(openStore, options.path);
             await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
         } catch (error) {
-            throw normalizeToError(error);
+            throw this.normalizeActionError(error);
         }
     }
 
@@ -179,7 +183,7 @@ export class Connector implements ConnectorInterface {
             const sourceTable = await findSourceTable(openStore, options.id);
             return { path: sourceTable == null ? undefined : options.id };
         } catch (error) {
-            throw normalizeToError(error);
+            throw this.normalizeActionError(error);
         }
     }
 
@@ -191,7 +195,7 @@ export class Connector implements ConnectorInterface {
             const connectionNodeConfigs = options.folderPath === '' ? await listTopNodes(openStore) : await listDatabaseNodes(openStore, options.folderPath);
             return { cursor: undefined, connectionNodeConfigs, isMore: false, totalCount: connectionNodeConfigs.length };
         } catch (error) {
-            throw normalizeToError(error);
+            throw this.normalizeActionError(error);
         }
     }
 
@@ -220,8 +224,8 @@ export class Connector implements ConnectorInterface {
             await connection.query(databaseName == null ? 'CHECKPOINT' : `CHECKPOINT ${quoteIdentifier(databaseName)}`); // Writes the load into the database file now, not at some later point.
             return { recordCount };
         } catch (error) {
-            await connection.query('ROLLBACK');
-            throw normalizeToError(error);
+            if (!this.storeWasTakenOver) await connection.query('ROLLBACK'); // A store another tab took is already closed, which undid the load.
+            throw this.normalizeActionError(error);
         }
     }
 
@@ -261,7 +265,7 @@ export class Connector implements ConnectorInterface {
                 sampleConfig: { hasHeaders: false, issues: [], parsedRecords, size: undefined, text: undefined }
             };
         } catch (error) {
-            throw normalizeToError(error);
+            throw this.normalizeActionError(error);
         }
     }
 
@@ -271,13 +275,15 @@ export class Connector implements ConnectorInterface {
         try {
             const { databaseName, tableName } = await attachDatabase(openStore, options.path);
             const tableCountTable = await runStatement(connection, TABLE_COUNT_SQL, [tableName, databaseName ?? null]);
-            if (Number(tableCountTable.getChildAt(0)?.get(0) ?? 0) === 0) throw new Error(`'${options.path}' has not been loaded.`);
+            if (Number(tableCountTable.getChildAt(0)?.get(0) ?? 0) === 0) {
+                throw constructStoreError('notLoaded', `'${options.path}' has not been loaded.`, 'dpuse-connector-duckdb-wasm.Connector.queryRecords');
+            }
             const storeQuery = constructStoreQuery(constructStoredColumns(options.columnConfigs), options); // The query brings the columns the object was loaded with.
             const pageTable = await runStatement(connection, storeQuery.pageSql, storeQuery.values);
             const countTable = await runStatement(connection, storeQuery.countSql, storeQuery.values);
             return { records: readRecords(pageTable, storeQuery.resultColumns), totalCount: Number(countTable.getChildAt(0)?.get(0) ?? 0) };
         } catch (error) {
-            throw normalizeToError(error);
+            throw this.normalizeActionError(error);
         }
     }
 
@@ -296,7 +302,7 @@ export class Connector implements ConnectorInterface {
             }
             return { recordCount };
         } catch (error) {
-            throw normalizeToError(error);
+            throw this.normalizeActionError(error);
         }
     }
 
@@ -325,15 +331,16 @@ export class Connector implements ConnectorInterface {
     }
 
     private establishOpenStore(): OpenStore {
-        if (!this.openStoreState) throw new Error('The store is not open.');
-        return this.openStoreState;
+        if (this.openStoreState) return this.openStoreState;
+        if (this.storeWasTakenOver) throw constructStoreError('heldElsewhere', HELD_ELSEWHERE_MESSAGE, 'dpuse-connector-duckdb-wasm.Connector.establishOpenStore');
+        throw new Error('The store is not open.');
     }
 
     // A connection's items can be listed and read before any data view has opened the store, so reading opens it first.
     // The store then stays open until it is closed, as it does for a data view.
     private async openStoreForReading(): Promise<OpenStore> {
         const { storeStateId } = await this.openStore();
-        if (storeStateId === 'heldElsewhere') throw new Error('The store is open in another tab.');
+        if (storeStateId === 'heldElsewhere') throw constructStoreError('heldElsewhere', HELD_ELSEWHERE_MESSAGE, 'dpuse-connector-duckdb-wasm.Connector.openStoreForReading');
         if (storeStateId === 'unavailable') throw new Error('This browser gives no storage to keep the store in, as in some private windows.');
         return this.establishOpenStore();
     }
@@ -342,6 +349,7 @@ export class Connector implements ConnectorInterface {
     private async startStore(shouldTakeOver: boolean): Promise<OpenStoreResult> {
         if (!(await isPrivateFileSystemAvailable())) return { storeStateId: 'unavailable' };
         const onLost = (): void => {
+            this.storeWasTakenOver = true;
             void this.closeStoreAfterTakeover();
         };
         const releaseLock = await acquireWebLock(LOCK_NAME, { onLost, takeOver: shouldTakeOver }); // Held until the store closes.
@@ -350,6 +358,7 @@ export class Connector implements ConnectorInterface {
         try {
             await removeScratchFolders(); // Clears any left by a tab that closed while DuckDB was running.
             this.openStoreState = await startDuckDBWhenFilesAreFree();
+            this.storeWasTakenOver = false;
             return { storeStateId: 'ready' };
         } catch (error) {
             await this.closeStore();
@@ -366,6 +375,14 @@ export class Connector implements ConnectorInterface {
         } catch {
             // Already closed as far as it can be.
         }
+    }
+
+    // A request still running when another tab took the store fails on the ended DuckDB. It is reported as the store being
+    // open elsewhere, as every later request is.
+    private normalizeActionError(error: unknown): Error {
+        return this.storeWasTakenOver && findStoreErrorId(error) == null
+            ? constructStoreError('heldElsewhere', HELD_ELSEWHERE_MESSAGE, 'dpuse-connector-duckdb-wasm.Connector.normalizeActionError', { cause: error })
+            : normalizeToError(error);
     }
 
     // Resolves once the lock is free for the next open.

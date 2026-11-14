@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // ── DPUse Framework
+import { findStoreErrorId } from '@dpuse/dpuse-shared';
 import type { ConnectorUtilities, StoreRecord } from '@dpuse/dpuse-shared';
 
 // ── Local Framework
@@ -41,6 +42,7 @@ vi.mock('@duckdb/duckdb-wasm', () => ({
 const DAY = 86_400_000;
 const NODE_LOCKS = navigator.locks; // Node's own Web Locks, which the tabs in a takeover share as browser tabs do.
 const PREVIEW_OPTIONS = { chunkSize: undefined, dataFormatId: undefined, encodingId: undefined, extension: undefined, mimeType: undefined, parserId: undefined, valueDelimiterId: undefined };
+const QUERY_OPTIONS = { aggregates: [], columnConfigs: [], filters: [], groupColumnIndexes: [], limit: 1, offset: 0, path: 'sales', sorts: [] };
 const READ_OPTIONS = { chunkSize: 2, dataFormatId: 'unknown' as const, encodingId: undefined, parserId: undefined, valueDelimiterId: undefined };
 
 // ── Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -97,7 +99,17 @@ describe('Connector', () => {
         await vi.waitFor(() => {
             expect(holdingConnector.openStoreState).toBeUndefined();
         });
+        const heldElsewhereError = await captureError(() => holdingConnector.queryRecords(QUERY_OPTIONS));
+        expect(findStoreErrorId(heldElsewhereError)).toBe('heldElsewhere'); // Every later request says so, rather than that the store is not open.
         await takingConnector.closeStore();
+    });
+
+    it('reports a table that has not been loaded, so the app can offer to load it', async () => {
+        const { connector } = constructFakeConnector({ default: {} });
+
+        const notLoadedError = await captureError(() => connector.queryRecords(QUERY_OPTIONS));
+
+        expect(findStoreErrorId(notLoadedError)).toBe('notLoaded');
     });
 
     it('fails at once when DuckDB fails to start for any other reason', async () => {
@@ -215,7 +227,7 @@ describe('Connector', () => {
         });
 
         it.each([
-            { message: 'The store is open in another tab.', storeStateId: 'heldElsewhere' as const },
+            { message: 'The store is open in another tab or window.', storeStateId: 'heldElsewhere' as const },
             { message: 'This browser gives no storage to keep the store in, as in some private windows.', storeStateId: 'unavailable' as const }
         ])('refuses to list when the store cannot be opened because it is $storeStateId', async ({ message, storeStateId }) => {
             const connector = new Connector({} as never, []);
@@ -334,6 +346,15 @@ describe('Connector', () => {
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+async function captureError(action: () => Promise<unknown>): Promise<unknown> {
+    try {
+        await action();
+    } catch (error) {
+        return error;
+    }
+    return undefined;
+}
 
 // The browser features DuckDB's start needs: a private file system, Web Locks and workers. The Web Locks grant every
 // request unless real ones are given.
