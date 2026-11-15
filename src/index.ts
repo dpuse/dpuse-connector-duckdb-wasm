@@ -58,6 +58,7 @@ import {
     identifyColumnType,
     LOADING_TABLE_NAMES_SQL,
     quoteIdentifier,
+    resolveBatchRecordCount,
     resolveStoreTable,
     STAGING_TABLE,
     type StoredColumn,
@@ -83,7 +84,6 @@ interface SourceTable {
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 const DATABASE_FILE_PATTERN = /^opfs:\/\/([\w-]+)\.duckdb$/u; // A database's file, as DuckDB lists it.
-const BATCH_VALUE_COUNT = 5_000_000; // Values a load commits at a time, about 40 MB of numbers, well within 'MEMORY_LIMIT'.
 const DATABASE_PATH = `opfs://${DEFAULT_DATABASE_NAME}.duckdb`;
 const DEFAULT_CHUNK_SIZE = 10_000; // Records read at a time by an audit or a retrieve.
 const HELD_ELSEWHERE_MESSAGE = 'The store is open in another tab or window.';
@@ -221,7 +221,9 @@ export class Connector implements ConnectorInterface {
         const signal = resolveRequestSignal(options);
         const loadingTablePath = constructLoadingTablePath(options.path);
         const loadingTableReference = constructTableReference(loadingTablePath);
-        const batchRecordCount = Math.max(1, Math.floor(BATCH_VALUE_COUNT / Math.max(1, storedColumns.length)));
+        const batchRecordCount = resolveBatchRecordCount(storedColumns.length);
+        const startedAt = performance.now();
+        let commitCount = 0;
         let recordCount = 0;
         try {
             await connection.query(`DROP TABLE IF EXISTS ${loadingTableReference}`); // Left by an earlier load of the object that never finished.
@@ -238,6 +240,8 @@ export class Connector implements ConnectorInterface {
                 uncommittedRecordCount += records.length;
                 if (uncommittedRecordCount < batchRecordCount) continue;
                 await connection.query('COMMIT');
+                commitCount++;
+                logLoadStep(`commit ${String(commitCount)} at ${String(recordCount)} records, ${describeElapsed(startedAt)}, ${await describeDuckDBMemory(openStore)}`);
                 await connection.query('BEGIN TRANSACTION');
                 uncommittedRecordCount = 0;
             }
@@ -245,6 +249,7 @@ export class Connector implements ConnectorInterface {
             await connection.query(`ALTER TABLE ${loadingTableReference} RENAME TO ${quoteIdentifier(tableName)}`);
             await connection.query('COMMIT');
             await connection.query(databaseName == null ? 'CHECKPOINT' : `CHECKPOINT ${quoteIdentifier(databaseName)}`); // Writes the load into the database file now, not at some later point.
+            logLoadStep(`done: ${String(recordCount)} records in ${String(commitCount + 1)} commits of up to ${String(batchRecordCount)}, ${describeElapsed(startedAt)}, ${await describeDuckDBMemory(openStore)}`);
             return { recordCount };
         } catch (error) {
             if (!this.storeWasTakenOver) await discardLoadingTable(connection, loadingTableReference); // A store another tab took is already closed, which undid the batch in progress.
@@ -598,6 +603,28 @@ async function discardLoadingTable(connection: AsyncDuckDBConnection, loadingTab
     } catch {
         // Dropped when its database is next opened.
     }
+}
+
+// Temporary load timing test. Logs each commit of a load to the console with the time taken so far and DuckDB's memory,
+// to show where a load spends its time. Remove this, 'describeElapsed', 'describeDuckDBMemory' and their uses in
+// 'loadObjectRecords' once tested.
+function logLoadStep(step: string): void {
+    console.info(`[duckdb load] ${step}`);
+}
+
+function describeElapsed(startedAt: number): string {
+    return `${(Math.round((performance.now() - startedAt) / 100) / 10).toFixed(1)} s`;
+}
+
+// DuckDB's own count of the memory it holds, its limit, and what it has spilled to temporary storage.
+async function describeDuckDBMemory(openStore: OpenStore): Promise<string> {
+    const table = await runStatement(
+        openStore.connection,
+        "SELECT sum(memory_usage_bytes)::DOUBLE, sum(temporary_storage_bytes)::DOUBLE, current_setting('memory_limit') FROM duckdb_memory()",
+        []
+    );
+    const toMegabytes = (value: unknown): string => `${String(Math.round(Number(value ?? 0) / 1_048_576))} MB`;
+    return `DuckDB memory ${toMegabytes(table.getChildAt(0)?.get(0))} of ${String(table.getChildAt(2)?.get(0))}, temporary ${toMegabytes(table.getChildAt(1)?.get(0))}`;
 }
 
 // Some private windows give no private file system, and DuckDB fails to open without one.

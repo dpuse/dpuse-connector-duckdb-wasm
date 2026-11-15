@@ -35,10 +35,13 @@ interface NodeBlockingBuild {
 // The connector's own start of DuckDB needs a browser worker. These tests hand it a connection to the Node build instead.
 vi.mock('@duckdb/duckdb-wasm', () => ({ AsyncDuckDB: vi.fn(), DuckDBAccessMode: { READ_WRITE: 2 }, VoidLogger: vi.fn() }));
 
+// A real batch is a row group of 122,880 records or more, so the tests set a small one to see the commits between batches.
+const { batch } = vi.hoisted(() => ({ batch: { recordCount: 2 } }));
+vi.mock('@/duckdbSql', async (importOriginal) => ({ ...(await importOriginal<object>()), resolveBatchRecordCount: () => batch.recordCount }));
+
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 const COLUMN_CONFIGS = [{ dataSubtypeId: undefined, dataTypeId: 'numeric' }] as ObjectColumnConfig[];
-const WIDE_COLUMN_COUNT = 1000; // Wide enough that a load of a few thousand records takes more than one batch of 5 million values.
 
 // ── State ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -58,17 +61,13 @@ describe('loadObjectRecords', () => {
         expect(listInternalTableNames()).toEqual([]);
     });
 
-    it('commits a wide load a batch at a time and swaps it in at the end', async () => {
+    it('commits a batch each time its records are in and swaps the load in at the end', async () => {
         const connector = constructConnector();
         const queries = recordQueries();
-        const wideColumnConfigs = Array.from({ length: WIDE_COLUMN_COUNT }, () => COLUMN_CONFIGS[0]) as ObjectColumnConfig[];
-        const wideChunk = Array.from({ length: 2000 }, (_unused, recordIndex) => Array.from({ length: WIDE_COLUMN_COUNT }, () => recordIndex));
 
-        const result = await connector.loadObjectRecords({ columnConfigs: wideColumnConfigs, path: 'wide' }, toChunks([wideChunk, wideChunk, wideChunk]));
-
-        expect(result).toEqual({ recordCount: 6000 });
-        expect(queries.filter((sql) => sql === 'COMMIT')).toHaveLength(2); // One batch of 5,000 records, then the rest with the swap.
-        expect(readNumbers('SELECT count(*) FROM wide')).toEqual([6000]);
+        await expect(load(connector, 'batched', [[[1]], [[2]], [[3]], [[4], [5]]])).resolves.toEqual({ recordCount: 5 });
+        expect(queries.filter((sql) => sql === 'COMMIT')).toHaveLength(3); // After the second and the fourth chunk, then with the swap.
+        expect(readNumbers('SELECT c0 FROM batched ORDER BY c0')).toEqual([1, 2, 3, 4, 5]);
     });
 
     it('keeps the earlier load and drops its own table when the load fails', async () => {
@@ -84,16 +83,14 @@ describe('loadObjectRecords', () => {
         const connector = constructConnector();
         await load(connector, 'stock', [[[1]]]);
         const controller = new AbortController();
-        const wideColumnConfigs = Array.from({ length: WIDE_COLUMN_COUNT }, () => COLUMN_CONFIGS[0]) as ObjectColumnConfig[];
-        const wideChunk = Array.from({ length: 5000 }, () => Array.from({ length: WIDE_COLUMN_COUNT }, () => 2));
         async function* stoppedChunks(): AsyncGenerator<StoreRecord[]> {
             await Promise.resolve();
-            yield wideChunk; // Fills a batch, which is committed.
+            yield [[2], [3]]; // Fills a batch, which is committed.
             controller.abort(new Error('Stopped.'));
-            yield wideChunk;
+            yield [[4]];
         }
 
-        await expect(connector.loadObjectRecords({ columnConfigs: wideColumnConfigs, path: 'stock', signal: controller.signal }, stoppedChunks())).rejects.toThrow('Stopped.');
+        await expect(connector.loadObjectRecords({ columnConfigs: COLUMN_CONFIGS, path: 'stock', signal: controller.signal }, stoppedChunks())).rejects.toThrow('Stopped.');
         expect(readNumbers('SELECT count(*) FROM stock')).toEqual([1]);
         expect(listInternalTableNames()).toEqual([]);
     });

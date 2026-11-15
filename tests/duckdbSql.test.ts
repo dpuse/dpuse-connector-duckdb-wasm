@@ -6,7 +6,7 @@ import type { QueryRecordsOptions } from '@dpuse/dpuse-shared';
 
 // ── Local Framework
 import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoreQuery } from '@/duckdbSql';
-import { constructTableReference, fromStoredValue, type StoredColumn } from '@/duckdbSql';
+import { constructLoadingTablePath, constructTableReference, fromStoredValue, resolveBatchRecordCount, type StoredColumn } from '@/duckdbSql';
 
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -35,6 +35,26 @@ describe('constructTableReference', () => {
 
     it('rejects a path that names its database wrongly', () => {
         expect(() => constructTableReference('/archive.db/sales')).toThrow("Encountered invalid store path '/archive.db/sales'.");
+    });
+});
+
+describe('constructLoadingTablePath', () => {
+    it('builds a load beside its object, in the same database', () => {
+        expect(constructLoadingTablePath('sales')).toBe('_dpuse_loading_sales');
+        expect(constructLoadingTablePath('/finance/sales')).toBe('/finance/_dpuse_loading_sales');
+        expect(constructLoadingTablePath('/default/sales')).toBe('_dpuse_loading_sales');
+    });
+});
+
+describe('resolveBatchRecordCount', () => {
+    it('commits whole row groups, as many as 20 million values allow', () => {
+        expect(resolveBatchRecordCount(136)).toBe(122_880); // WDICSV's width, one row group.
+        expect(resolveBatchRecordCount(10)).toBe(16 * 122_880);
+        expect(resolveBatchRecordCount(0)).toBe(162 * 122_880); // Counted as one value a record.
+    });
+
+    it('commits fewer records than a row group for a table too wide for one', () => {
+        expect(resolveBatchRecordCount(1000)).toBe(20_000);
     });
 });
 

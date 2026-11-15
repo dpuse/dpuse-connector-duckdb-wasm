@@ -62,6 +62,13 @@ export const TABLE_NAMES_SQL = `SELECT table_name FROM duckdb_tables() WHERE dat
 // null, in the store's default database.
 export const LOADING_TABLE_NAMES_SQL = `SELECT table_name FROM duckdb_tables() WHERE database_name = coalesce(?, current_database()) AND starts_with(table_name, '${LOADING_TABLE_PREFIX}')`;
 
+// The most values a load leaves uncommitted, about 160 MB of numbers, within the store's 256 MB memory limit.
+const BATCH_VALUE_LIMIT = 20_000_000;
+
+// The records in one of DuckDB's row groups. A load that commits whole row groups has DuckDB write them straight into
+// the database file. A smaller commit goes through the write-ahead log first and is written again from there.
+const ROW_GROUP_RECORD_COUNT = 122_880;
+
 const LIKE_ESCAPE_SQL = String.raw`ESCAPE '\'`; // Lets a filter match '%' and '_' as written, not as wildcards.
 
 const MICROSECONDS_PER_MILLISECOND = 1000;
@@ -166,6 +173,14 @@ export function quoteIdentifier(name: string): string {
 export function constructTableReference(path: string): string {
     const { databaseName, tableName } = resolveStoreTable(path);
     return databaseName == null ? quoteIdentifier(tableName) : `${quoteIdentifier(databaseName)}.${quoteIdentifier(tableName)}`;
+}
+
+// The records a load commits at a time: as many whole row groups as fit 'BATCH_VALUE_LIMIT', or, for a table too wide
+// for even one, as many records as fit it.
+export function resolveBatchRecordCount(columnCount: number): number {
+    const valueCountPerRecord = Math.max(1, columnCount);
+    const rowGroupCount = Math.floor(BATCH_VALUE_LIMIT / (ROW_GROUP_RECORD_COUNT * valueCountPerRecord));
+    return rowGroupCount > 0 ? rowGroupCount * ROW_GROUP_RECORD_COUNT : Math.max(1, Math.floor(BATCH_VALUE_LIMIT / valueCountPerRecord));
 }
 
 // The path of the table a load builds before it takes the object's place, in the object's database.
