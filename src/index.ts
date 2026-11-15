@@ -91,6 +91,9 @@ const MEMORY_LIMIT = '256MB';
 const PREVIEW_RECORD_COUNT = 50;
 const START_ATTEMPT_COUNT = 10; // Starts tried while an ended worker still holds the database's files.
 const START_RETRY_DELAY_MS = 200;
+// DuckDB spills what does not fit its memory limit to JavaScript memory by default, so a large load still grew until iOS
+// reloaded the page. Spilling to the private file system keeps it out of memory.
+const TEMPORARY_DIRECTORY = 'opfs://tmp';
 const TRUSTED_TYPES_POLICY_NAME = 'dpuse-connector-duckdb-wasm'; // Must be listed in the app's CSP 'trusted-types' directive.
 const WASM_FILE_NAME = 'duckdb-base.wasm';
 const WORKER_FILE_NAME = 'duckdb-browser-base.worker.js';
@@ -720,7 +723,7 @@ importScripts(policy ? policy.createScriptURL(url) : url);`;
     });
     try {
         await Promise.race([database.instantiate(new URL(WASM_FILE_NAME, import.meta.url).href), workerFailure.promise]);
-        await database.open({ accessMode: DuckDBAccessMode.READ_WRITE, path: DATABASE_PATH });
+        await database.open({ accessMode: DuckDBAccessMode.READ_WRITE, path: DATABASE_PATH, temporaryDirectory: TEMPORARY_DIRECTORY });
         const connection = await database.connect();
         await connection.query(`SET memory_limit = '${MEMORY_LIMIT}'`);
         return { attachedDatabases: new Map(), connection, database };
