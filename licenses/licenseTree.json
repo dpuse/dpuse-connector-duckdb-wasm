@@ -1,5 +1,5 @@
 {
-  "version": "1.0.138",
+  "version": "1.0.139",
   "name": "@dpuse/dpuse-connector-duckdb-wasm",
   "dependencies": {
     "@dpuse/dpuse-development": {
