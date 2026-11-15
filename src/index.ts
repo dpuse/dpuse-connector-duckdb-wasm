@@ -223,14 +223,16 @@ export class Connector implements ConnectorInterface {
                 await connection.insertArrowTable(constructArrowTable(records, storedColumns), { create: true, name: STAGING_TABLE });
                 await connection.query(stagedInsertSql);
                 await connection.query(`DROP TABLE ${STAGING_TABLE}`);
-                if (Math.floor((recordCount + records.length) / 50_000) > Math.floor(recordCount / 50_000)) logLoadStep(`inserted ${String(recordCount + records.length)} records`);
+                if (Math.floor((recordCount + records.length) / 50_000) > Math.floor(recordCount / 50_000)) {
+                    logLoadStep(`inserted ${String(recordCount + records.length)} records, ${await describeDuckDBMemory(openStore)}`);
+                }
                 recordCount += records.length;
             }
-            logLoadStep(`all ${String(recordCount)} records inserted, starting COMMIT`);
+            logLoadStep(`all ${String(recordCount)} records inserted, ${await describeDuckDBMemory(openStore)}, starting COMMIT`);
             await connection.query('COMMIT');
             logLoadStep('COMMIT done, starting CHECKPOINT');
             await connection.query(databaseName == null ? 'CHECKPOINT' : `CHECKPOINT ${quoteIdentifier(databaseName)}`); // Writes the load into the database file now, not at some later point.
-            logLoadStep('CHECKPOINT done');
+            logLoadStep(`CHECKPOINT done, ${await describeDuckDBMemory(openStore)}`);
             return { recordCount };
         } catch (error) {
             if (!this.storeWasTakenOver) await connection.query('ROLLBACK'); // A store another tab took is already closed, which undid the load.
@@ -563,6 +565,17 @@ async function findSourceTable(openStore: OpenStore, path: string): Promise<Sour
 // Temporary iOS crash test. Logs each step of a load, drop and query to the console, so the last line before the page
 // reloads names the step it failed in. Remove this and its uses in 'loadObjectRecords', 'dropObject' and 'queryRecords'
 // once tested.
+// DuckDB's own count of the memory it holds, its limit, and what it has spilled to temporary storage.
+async function describeDuckDBMemory(openStore: OpenStore): Promise<string> {
+    const table = await runStatement(
+        openStore.connection,
+        "SELECT sum(memory_usage_bytes)::DOUBLE, sum(temporary_storage_bytes)::DOUBLE, current_setting('memory_limit') FROM duckdb_memory()",
+        []
+    );
+    const toMegabytes = (value: unknown): string => `${String(Math.round(Number(value ?? 0) / 1_048_576))} MB`;
+    return `DuckDB memory ${toMegabytes(table.getChildAt(0)?.get(0))} of ${String(table.getChildAt(2)?.get(0))}, temporary ${toMegabytes(table.getChildAt(1)?.get(0))}`;
+}
+
 function logLoadStep(step: string): void {
     console.info(`[duckdb load] ${new Date().toISOString()} ${step}`);
 }
