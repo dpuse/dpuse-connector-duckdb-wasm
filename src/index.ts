@@ -173,7 +173,9 @@ export class Connector implements ConnectorInterface {
         const { connection } = openStore;
         try {
             await attachDatabase(openStore, options.path);
+            logLoadStep(`dropObject starting: ${options.path}`);
             await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
+            logLoadStep(`dropObject done: ${options.path}`);
         } catch (error) {
             throw this.normalizeActionError(error);
         }
@@ -286,8 +288,11 @@ export class Connector implements ConnectorInterface {
                 throw constructStoreError('notLoaded', `'${options.path}' has not been loaded.`, 'dpuse-connector-duckdb-wasm.Connector.queryRecords');
             }
             const storeQuery = constructStoreQuery(constructStoredColumns(options.columnConfigs), options); // The query brings the columns the object was loaded with.
+            logLoadStep(`queryRecords page starting: ${storeQuery.pageSql}`);
             const pageTable = await runStatement(connection, storeQuery.pageSql, storeQuery.values);
+            logLoadStep(`queryRecords page done, count starting: ${storeQuery.countSql}`);
             const countTable = await runStatement(connection, storeQuery.countSql, storeQuery.values);
+            logLoadStep('queryRecords count done');
             return { records: readRecords(pageTable, storeQuery.resultColumns), totalCount: Number(countTable.getChildAt(0)?.get(0) ?? 0) };
         } catch (error) {
             throw this.normalizeActionError(error);
@@ -555,8 +560,9 @@ async function findSourceTable(openStore: OpenStore, path: string): Promise<Sour
     return columnConfigs.length === 0 ? undefined : { columnConfigs, path };
 }
 
-// Temporary iOS crash test. Logs each step of a load to the console, so the last line before the page reloads names the
-// step it failed in. Remove this and its uses in 'loadObjectRecords' once tested.
+// Temporary iOS crash test. Logs each step of a load, drop and query to the console, so the last line before the page
+// reloads names the step it failed in. Remove this and its uses in 'loadObjectRecords', 'dropObject' and 'queryRecords'
+// once tested.
 function logLoadStep(step: string): void {
     console.info(`[duckdb load] ${new Date().toISOString()} ${step}`);
 }
