@@ -121,16 +121,16 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 
 | Chunk/Module/File                                                             | Composition                                                                                     |
 | :---------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
-| **dist/dpuse-connector-duckdb-wasm.es.js**                                    | 270.7&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;58.1&nbsp;kB&nbsp;·&nbsp;100.0%&nbsp;of&nbsp;the&nbsp;build |
-| &nbsp;&nbsp;&nbsp;&nbsp;apache-arrow → ipc/reader.mjs + 84 more               | `██████████████░░░░░░`&nbsp;68.1%&nbsp;·&nbsp;184.2&nbsp;kB                                     |
+| **dist/dpuse-connector-duckdb-wasm.es.js**                                    | 269.3&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;57.6&nbsp;kB&nbsp;·&nbsp;100.0%&nbsp;of&nbsp;the&nbsp;build |
+| &nbsp;&nbsp;&nbsp;&nbsp;apache-arrow → ipc/reader.mjs + 84 more               | `██████████████░░░░░░`&nbsp;68.4%&nbsp;·&nbsp;184.2&nbsp;kB                                     |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ ipc/reader.mjs              | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.6%&nbsp;·&nbsp;12.4&nbsp;kB                                       |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ type.mjs                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.1%&nbsp;·&nbsp;11.2&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ type.mjs                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.2%&nbsp;·&nbsp;11.2&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ data.mjs                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;3.2%&nbsp;·&nbsp;8.6&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ ipc/metadata/message.mjs    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;3.1%&nbsp;·&nbsp;8.4&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor.mjs                 | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;2.7%&nbsp;·&nbsp;7.4&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ util/int.mjs                | `░░░░░░░░░░░░░░░░░░░░`&nbsp;2.4%&nbsp;·&nbsp;6.4&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor/vectorloader.mjs    | `░░░░░░░░░░░░░░░░░░░░`&nbsp;2.4%&nbsp;·&nbsp;6.4&nbsp;kB                                        |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor/set.mjs             | `░░░░░░░░░░░░░░░░░░░░`&nbsp;2.1%&nbsp;·&nbsp;5.8&nbsp;kB                                        |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor/set.mjs             | `░░░░░░░░░░░░░░░░░░░░`&nbsp;2.2%&nbsp;·&nbsp;5.8&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ ipc/writer.mjs              | `░░░░░░░░░░░░░░░░░░░░`&nbsp;2.1%&nbsp;·&nbsp;5.7&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ vector.mjs                  | `░░░░░░░░░░░░░░░░░░░░`&nbsp;2.1%&nbsp;·&nbsp;5.6&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor/get.mjs             | `░░░░░░░░░░░░░░░░░░░░`&nbsp;1.8%&nbsp;·&nbsp;4.8&nbsp;kB                                        |
@@ -151,7 +151,7 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ io/interfaces.mjs           | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.9%&nbsp;·&nbsp;2.4&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor/indexof.mjs         | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.9%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/footer.mjs               | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.9%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor/typeassembler.mjs   | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.8%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor/typeassembler.mjs   | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.9%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ visitor/iterator.mjs        | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.8%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ ipc/metadata/file.mjs       | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.8%&nbsp;·&nbsp;2.3&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ util/vector.mjs             | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.8%&nbsp;·&nbsp;2.2&nbsp;kB                                        |
@@ -176,15 +176,15 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/fixed-size-binary.mjs    | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.3%&nbsp;·&nbsp;801&nbsp;B                                         |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/floating-point.mjs       | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.3%&nbsp;·&nbsp;797&nbsp;B                                         |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ 33 smaller files            | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.8%&nbsp;·&nbsp;12.9&nbsp;kB                                       |
-| &nbsp;&nbsp;&nbsp;&nbsp;@duckdb/duckdb-wasm → dist/duckdb-browser.mjs         | `██░░░░░░░░░░░░░░░░░░`&nbsp;9.0%&nbsp;·&nbsp;24.5&nbsp;kB                                       |
-| &nbsp;&nbsp;&nbsp;&nbsp;src → index.ts + 1 more                               | `██░░░░░░░░░░░░░░░░░░`&nbsp;8.2%&nbsp;·&nbsp;22.3&nbsp;kB                                       |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ index.ts                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;5.1%&nbsp;·&nbsp;13.9&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;@duckdb/duckdb-wasm → dist/duckdb-browser.mjs         | `██░░░░░░░░░░░░░░░░░░`&nbsp;9.1%&nbsp;·&nbsp;24.5&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;src → index.ts + 1 more                               | `██░░░░░░░░░░░░░░░░░░`&nbsp;7.8%&nbsp;·&nbsp;21.0&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ index.ts                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.7%&nbsp;·&nbsp;12.6&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ duckdbSql.ts                | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;3.1%&nbsp;·&nbsp;8.3&nbsp;kB                                        |
-| &nbsp;&nbsp;&nbsp;&nbsp;@dpuse/dpuse-shared → dist/dpuse-shared.es.js         | `█░░░░░░░░░░░░░░░░░░░`&nbsp;3.9%&nbsp;·&nbsp;10.7&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;@dpuse/dpuse-shared → dist/dpuse-shared.es.js         | `█░░░░░░░░░░░░░░░░░░░`&nbsp;4.0%&nbsp;·&nbsp;10.7&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;flatbuffers → mjs/builder.js + 3 more                 | `█░░░░░░░░░░░░░░░░░░░`&nbsp;3.6%&nbsp;·&nbsp;9.8&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ 4 smaller files             | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;3.6%&nbsp;·&nbsp;9.8&nbsp;kB                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;tslib → tslib.es6.mjs                                 | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.9%&nbsp;·&nbsp;2.5&nbsp;kB                                        |
-| &nbsp;&nbsp;&nbsp;&nbsp;(bundler output, whitespace & JSON)                   | `█░░░░░░░░░░░░░░░░░░░`&nbsp;6.2%&nbsp;·&nbsp;16.8&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;(bundler output, whitespace & JSON)                   | `█░░░░░░░░░░░░░░░░░░░`&nbsp;6.2%&nbsp;·&nbsp;16.7&nbsp;kB                                       |
 
 Bars show each row's share of its output file. ↳ rows are part of the row above.
 

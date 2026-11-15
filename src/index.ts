@@ -222,9 +222,6 @@ export class Connector implements ConnectorInterface {
         const loadingTablePath = constructLoadingTablePath(options.path);
         const loadingTableReference = constructTableReference(loadingTablePath);
         const batchRecordCount = resolveBatchRecordCount(storedColumns.length);
-        const startedAt = performance.now();
-        const timings = { arrow: 0, commit: 0, insert: 0, source: 0, transfer: 0 }; // Milliseconds spent in each part of the load.
-        let commitCount = 0;
         let recordCount = 0;
         try {
             await connection.query(`DROP TABLE IF EXISTS ${loadingTableReference}`); // Left by an earlier load of the object that never finished.
@@ -232,41 +229,22 @@ export class Connector implements ConnectorInterface {
             const stagedInsertSql = constructStagedInsertSql(loadingTablePath, storedColumns);
             let uncommittedRecordCount = 0;
             await connection.query('BEGIN TRANSACTION');
-            let waitStartedAt = performance.now();
             for await (const records of chunks) {
-                let stepStartedAt = performance.now();
-                timings.source += stepStartedAt - waitStartedAt;
                 signal.throwIfAborted();
-                const arrowTable = constructArrowTable(records, storedColumns);
-                stepStartedAt = addTiming(timings, 'arrow', stepStartedAt);
-                await connection.insertArrowTable(arrowTable, { create: true, name: STAGING_TABLE });
-                stepStartedAt = addTiming(timings, 'transfer', stepStartedAt);
+                await connection.insertArrowTable(constructArrowTable(records, storedColumns), { create: true, name: STAGING_TABLE });
                 await connection.query(stagedInsertSql);
                 await connection.query(`DROP TABLE ${STAGING_TABLE}`);
-                stepStartedAt = addTiming(timings, 'insert', stepStartedAt);
                 recordCount += records.length;
                 uncommittedRecordCount += records.length;
-                if (uncommittedRecordCount < batchRecordCount) {
-                    waitStartedAt = performance.now();
-                    continue;
-                }
+                if (uncommittedRecordCount < batchRecordCount) continue;
                 await connection.query('COMMIT');
-                addTiming(timings, 'commit', stepStartedAt);
-                commitCount++;
-                logLoadStep(`commit ${String(commitCount)} at ${String(recordCount)} records, ${describeElapsed(startedAt)}, ${describeTimings(timings)}, ${await describeDuckDBMemory(openStore)}`);
                 await connection.query('BEGIN TRANSACTION');
                 uncommittedRecordCount = 0;
-                waitStartedAt = performance.now();
             }
-            const swapStartedAt = performance.now();
             await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
             await connection.query(`ALTER TABLE ${loadingTableReference} RENAME TO ${quoteIdentifier(tableName)}`);
             await connection.query('COMMIT');
             await connection.query(databaseName == null ? 'CHECKPOINT' : `CHECKPOINT ${quoteIdentifier(databaseName)}`); // Writes the load into the database file now, not at some later point.
-            addTiming(timings, 'commit', swapStartedAt);
-            logLoadStep(
-                `done: ${String(recordCount)} records in ${String(commitCount + 1)} commits of up to ${String(batchRecordCount)}, ${describeElapsed(startedAt)}, ${describeTimings(timings)}, ${await describeDuckDBMemory(openStore)}`
-            );
             return { recordCount };
         } catch (error) {
             if (!this.storeWasTakenOver) await discardLoadingTable(connection, loadingTableReference); // A store another tab took is already closed, which undid the batch in progress.
@@ -620,47 +598,6 @@ async function discardLoadingTable(connection: AsyncDuckDBConnection, loadingTab
     } catch {
         // Dropped when its database is next opened.
     }
-}
-
-// Temporary load timing test. Logs each commit of a load to the console with the time taken so far, split by part, and
-// DuckDB's memory, to show where a load spends its time. Remove this, 'describeElapsed', 'describeSeconds', 'addTiming',
-// 'describeTimings', 'describeDuckDBMemory' and their uses in 'loadObjectRecords' once tested.
-function logLoadStep(step: string): void {
-    console.info(`[duckdb load] ${step}`);
-}
-
-function describeElapsed(startedAt: number): string {
-    return describeSeconds(performance.now() - startedAt);
-}
-
-function describeSeconds(milliseconds: number): string {
-    return `${(Math.round(milliseconds / 100) / 10).toFixed(1)} s`;
-}
-
-// Adds the time since the step started to its part of the load, and returns the time the next step starts.
-function addTiming(timings: Record<string, number>, part: string, stepStartedAt: number): number {
-    const now = performance.now();
-    timings[part] = (timings[part] ?? 0) + now - stepStartedAt;
-    return now;
-}
-
-// Source is waiting for the next chunk: the download, parsing and the engine's conversion of values. Arrow is building
-// the chunk's table. Transfer is handing it to DuckDB's worker. Insert is DuckDB's insert. Commit includes the swap.
-function describeTimings(timings: Record<string, number>): string {
-    return Object.entries(timings)
-        .map(([part, milliseconds]) => `${part} ${describeSeconds(milliseconds)}`)
-        .join(', ');
-}
-
-// DuckDB's own count of the memory it holds, its limit, and what it has spilled to temporary storage.
-async function describeDuckDBMemory(openStore: OpenStore): Promise<string> {
-    const table = await runStatement(
-        openStore.connection,
-        "SELECT sum(memory_usage_bytes)::DOUBLE, sum(temporary_storage_bytes)::DOUBLE, current_setting('memory_limit') FROM duckdb_memory()",
-        []
-    );
-    const toMegabytes = (value: unknown): string => `${String(Math.round(Number(value ?? 0) / 1_048_576))} MB`;
-    return `DuckDB memory ${toMegabytes(table.getChildAt(0)?.get(0))} of ${String(table.getChildAt(2)?.get(0))}, temporary ${toMegabytes(table.getChildAt(1)?.get(0))}`;
 }
 
 // Some private windows give no private file system, and DuckDB fails to open without one.
