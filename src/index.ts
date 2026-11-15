@@ -85,6 +85,9 @@ const DATABASE_PATH = `opfs://${DEFAULT_DATABASE_NAME}.duckdb`;
 const DEFAULT_CHUNK_SIZE = 10_000; // Records read at a time by an audit or a retrieve.
 const HELD_ELSEWHERE_MESSAGE = 'The store is open in another tab or window.';
 const LOCK_NAME = 'dpuse-connector-duckdb-wasm'; // Held by the one tab that has the store open.
+// DuckDB writes a load to its file as it goes, but drops those blocks from memory only once it reaches this limit. Its
+// default is far above what iOS allows a page, so a large load grew until iOS reloaded the page.
+const MEMORY_LIMIT = '256MB';
 const PREVIEW_RECORD_COUNT = 50;
 const START_ATTEMPT_COUNT = 10; // Starts tried while an ended worker still holds the database's files.
 const START_RETRY_DELAY_MS = 200;
@@ -689,7 +692,9 @@ importScripts(policy ? policy.createScriptURL(url) : url);`;
     try {
         await Promise.race([database.instantiate(new URL(WASM_FILE_NAME, import.meta.url).href), workerFailure.promise]);
         await database.open({ accessMode: DuckDBAccessMode.READ_WRITE, path: DATABASE_PATH });
-        return { attachedDatabases: new Map(), connection: await database.connect(), database };
+        const connection = await database.connect();
+        await connection.query(`SET memory_limit = '${MEMORY_LIMIT}'`);
+        return { attachedDatabases: new Map(), connection, database };
     } catch (error) {
         await database.terminate(); // Ends the worker, so a failed start leaves no files open.
         throw error;

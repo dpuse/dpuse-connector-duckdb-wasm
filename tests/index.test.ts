@@ -28,7 +28,7 @@ type SqlValue = number | string | null; // The connector passes names as text, n
 const { openDuckDB } = vi.hoisted(() => ({ openDuckDB: vi.fn<() => Promise<void>>() }));
 vi.mock('@duckdb/duckdb-wasm', () => ({
     AsyncDuckDB: class {
-        connect = (): Promise<unknown> => Promise.resolve({ close: () => Promise.resolve() });
+        connect = (): Promise<unknown> => Promise.resolve({ close: () => Promise.resolve(), query: () => Promise.resolve() });
         instantiate = (): Promise<void> => Promise.resolve();
         open = openDuckDB;
         terminate = (): Promise<void> => Promise.resolve();
