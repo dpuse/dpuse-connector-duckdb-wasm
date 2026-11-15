@@ -1,11 +1,11 @@
 // ── External Dependencies & Registrations
-import { copyFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 import Sonda from 'sonda/vite';
+import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 
 // ── DPUse Framework
@@ -14,16 +14,24 @@ import { recordShippedPackages } from '@dpuse/dpuse-development/vite';
 // ── Data
 import config from './config.json' with { type: 'json' };
 
+// ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+const WORKER_FILE_NAME = 'duckdb-browser-base.worker.js';
+
 // ── Plugins ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 // Ships DuckDB's '.wasm' file and worker script beside the connector's script, where the connector finds them. The
-// '.wasm' file is too large to inline, and a worker needs a script file of its own.
+// '.wasm' file is too large to inline, and a worker needs a script file of its own. The worker script names a source map
+// that DuckDB does not publish, so that comment is dropped, or Safari's Web Inspector logs a 404 for it.
 function shipDuckDBFiles(): Plugin {
     const duckdbDistributionPath = path.dirname(createRequire(import.meta.url).resolve('@duckdb/duckdb-wasm/dist/duckdb-base.wasm'));
     return {
         name: 'ship-duckdb-files',
         writeBundle(options) {
-            for (const fileName of ['duckdb-base.wasm', 'duckdb-browser-base.worker.js']) copyFileSync(path.join(duckdbDistributionPath, fileName), path.join(options.dir ?? 'dist', fileName));
+            const outputPath = options.dir ?? 'dist';
+            copyFileSync(path.join(duckdbDistributionPath, 'duckdb-base.wasm'), path.join(outputPath, 'duckdb-base.wasm'));
+            const workerScript = readFileSync(path.join(duckdbDistributionPath, WORKER_FILE_NAME), 'utf-8'); // eslint-disable-line security/detect-non-literal-fs-filename -- DuckDB's own package folder.
+            writeFileSync(path.join(outputPath, WORKER_FILE_NAME), workerScript.replace(/\n\/\/# sourceMappingURL=\S+\s*$/u, '\n')); // eslint-disable-line security/detect-non-literal-fs-filename -- The build's own output folder.
         }
     };
 }

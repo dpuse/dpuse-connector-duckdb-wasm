@@ -1,14 +1,14 @@
 {
-  "version": "1.0.127",
+  "version": "1.0.128",
   "name": "@dpuse/dpuse-connector-duckdb-wasm",
   "dependencies": {
     "@dpuse/dpuse-development": {
-      "version": "1.0.152",
-      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-development/-/dpuse-development-1.0.152.tgz",
+      "version": "1.0.155",
+      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-development/-/dpuse-development-1.0.155.tgz",
       "overridden": false,
       "dependencies": {
         "@dpuse/dpuse-shared": {
-          "version": "1.0.220"
+          "version": "1.0.223"
         },
         "license-checker-rseidelsohn": {
           "version": "5.0.1",
@@ -1194,8 +1194,8 @@
       }
     },
     "@dpuse/dpuse-shared": {
-      "version": "1.0.220",
-      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-shared/-/dpuse-shared-1.0.220.tgz",
+      "version": "1.0.223",
+      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-shared/-/dpuse-shared-1.0.223.tgz",
       "overridden": false,
       "dependencies": {
         "file-type": {
@@ -1212,7 +1212,7 @@
                   "version": "4.4.3"
                 },
                 "strtok3": {
-                  "version": "10.7.0"
+                  "version": "10.8.0"
                 },
                 "token-types": {
                   "version": "6.2.0"
@@ -1220,8 +1220,8 @@
               }
             },
             "strtok3": {
-              "version": "10.7.0",
-              "resolved": "https://registry.npmjs.org/strtok3/-/strtok3-10.7.0.tgz",
+              "version": "10.8.0",
+              "resolved": "https://registry.npmjs.org/strtok3/-/strtok3-10.8.0.tgz",
               "overridden": false,
               "dependencies": {
                 "@tokenizer/token": {
