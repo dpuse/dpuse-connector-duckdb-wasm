@@ -221,10 +221,14 @@ export class Connector implements ConnectorInterface {
                 await connection.insertArrowTable(constructArrowTable(records, storedColumns), { create: true, name: STAGING_TABLE });
                 await connection.query(stagedInsertSql);
                 await connection.query(`DROP TABLE ${STAGING_TABLE}`);
+                if (Math.floor((recordCount + records.length) / 50_000) > Math.floor(recordCount / 50_000)) logLoadStep(`inserted ${String(recordCount + records.length)} records`);
                 recordCount += records.length;
             }
+            logLoadStep(`all ${String(recordCount)} records inserted, starting COMMIT`);
             await connection.query('COMMIT');
+            logLoadStep('COMMIT done, starting CHECKPOINT');
             await connection.query(databaseName == null ? 'CHECKPOINT' : `CHECKPOINT ${quoteIdentifier(databaseName)}`); // Writes the load into the database file now, not at some later point.
+            logLoadStep('CHECKPOINT done');
             return { recordCount };
         } catch (error) {
             if (!this.storeWasTakenOver) await connection.query('ROLLBACK'); // A store another tab took is already closed, which undid the load.
@@ -549,6 +553,12 @@ async function findSourceTable(openStore: OpenStore, path: string): Promise<Sour
         label: { en: String(columnTable.getChildAt(0)?.get(rowIndex)) }
     }));
     return columnConfigs.length === 0 ? undefined : { columnConfigs, path };
+}
+
+// Temporary iOS crash test. Logs each step of a load to the console, so the last line before the page reloads names the
+// step it failed in. Remove this and its uses in 'loadObjectRecords' once tested.
+function logLoadStep(step: string): void {
+    console.info(`[duckdb load] ${new Date().toISOString()} ${step}`);
 }
 
 // Some private windows give no private file system, and DuckDB fails to open without one.
