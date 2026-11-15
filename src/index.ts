@@ -215,11 +215,9 @@ export class Connector implements ConnectorInterface {
             const stagedInsertSql = constructStagedInsertSql(options.path, storedColumns);
             for await (const records of chunks) {
                 signal.throwIfAborted();
-                if (!isInsertSkipped()) {
-                    await connection.insertArrowTable(constructArrowTable(records, storedColumns), { create: true, name: STAGING_TABLE });
-                    await connection.query(stagedInsertSql);
-                    await connection.query(`DROP TABLE ${STAGING_TABLE}`);
-                }
+                await connection.insertArrowTable(constructArrowTable(records, storedColumns), { create: true, name: STAGING_TABLE });
+                await connection.query(stagedInsertSql);
+                await connection.query(`DROP TABLE ${STAGING_TABLE}`);
                 recordCount += records.length;
             }
             await connection.query('COMMIT');
@@ -548,12 +546,6 @@ async function findSourceTable(openStore: OpenStore, path: string): Promise<Sour
         label: { en: String(columnTable.getChildAt(0)?.get(rowIndex)) }
     }));
     return columnConfigs.length === 0 ? undefined : { columnConfigs, path };
-}
-
-// Temporary iOS memory test. A load reads and parses every record but inserts none, to show whether memory still
-// climbs without DuckDB. Remove this and its use in 'loadObjectRecords' once tested.
-function isInsertSkipped(): boolean {
-    return Date.now() > 0;
 }
 
 // Some private windows give no private file system, and DuckDB fails to open without one.
