@@ -46,6 +46,7 @@ import { ConnectorError, normalizeToError, resolveRequestSignal } from '@dpuse/d
 import {
     constructArrowTable,
     constructCreateTableSql,
+    constructLoadingTablePath,
     constructRecordChunkSql,
     constructStagedInsertSql,
     constructStoredColumns,
@@ -55,6 +56,7 @@ import {
     DEFAULT_DATABASE_NAME,
     fromStoredValue,
     identifyColumnType,
+    LOADING_TABLE_NAMES_SQL,
     quoteIdentifier,
     resolveStoreTable,
     STAGING_TABLE,
@@ -81,12 +83,13 @@ interface SourceTable {
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 const DATABASE_FILE_PATTERN = /^opfs:\/\/([\w-]+)\.duckdb$/u; // A database's file, as DuckDB lists it.
+const BATCH_VALUE_COUNT = 5_000_000; // Values a load commits at a time, about 40 MB of numbers, well within 'MEMORY_LIMIT'.
 const DATABASE_PATH = `opfs://${DEFAULT_DATABASE_NAME}.duckdb`;
 const DEFAULT_CHUNK_SIZE = 10_000; // Records read at a time by an audit or a retrieve.
 const HELD_ELSEWHERE_MESSAGE = 'The store is open in another tab or window.';
 const LOCK_NAME = 'dpuse-connector-duckdb-wasm'; // Held by the one tab that has the store open.
-// DuckDB writes a load to its file as it goes, but drops those blocks from memory only once it reaches this limit. Its
-// default is far above what iOS allows a page, so a large load grew until iOS reloaded the page.
+// DuckDB holds data in memory up to this limit and spills the rest to its temporary directory. Its default is far above
+// what iOS allows a page, so a large load grew until iOS reloaded the page.
 const MEMORY_LIMIT = '256MB';
 const PREVIEW_RECORD_COUNT = 50;
 const START_ATTEMPT_COUNT = 10; // Starts tried while an ended worker still holds the database's files.
@@ -176,9 +179,7 @@ export class Connector implements ConnectorInterface {
         const { connection } = openStore;
         try {
             await attachDatabase(openStore, options.path);
-            logLoadStep(`dropObject starting: ${options.path}`);
             await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
-            logLoadStep(`dropObject done: ${options.path}`);
         } catch (error) {
             throw this.normalizeActionError(error);
         }
@@ -207,38 +208,46 @@ export class Connector implements ConnectorInterface {
         }
     }
 
-    // Replaces an object in one transaction, so a failed or stopped load leaves the earlier one in place. The columns'
-    // types are not kept, because every query brings them.
+    // Builds the object in a table of its own, committed a batch at a time. DuckDB spills the part of a transaction that
+    // does not fit its memory limit, and in the browser it cannot reopen a spill file in a later query, so a load held in
+    // one transaction stalled or failed. Once every record is in, one short transaction puts the new table in place of
+    // the earlier one, so a failed or stopped load leaves the earlier one in place. The columns' types are not kept,
+    // because every query brings them.
     async loadObjectRecords(options: LoadObjectRecordsOptions, chunks: AsyncIterable<StoreRecord[]>): Promise<LoadObjectRecordsResult> {
         const openStore = this.establishOpenStore();
         const { connection } = openStore;
-        const { databaseName } = await attachDatabase(openStore, options.path);
+        const { databaseName, tableName } = await attachDatabase(openStore, options.path);
         const storedColumns = constructStoredColumns(options.columnConfigs);
         const signal = resolveRequestSignal(options);
+        const loadingTablePath = constructLoadingTablePath(options.path);
+        const loadingTableReference = constructTableReference(loadingTablePath);
+        const batchRecordCount = Math.max(1, Math.floor(BATCH_VALUE_COUNT / Math.max(1, storedColumns.length)));
         let recordCount = 0;
         try {
+            await connection.query(`DROP TABLE IF EXISTS ${loadingTableReference}`); // Left by an earlier load of the object that never finished.
+            await connection.query(constructCreateTableSql(loadingTablePath, storedColumns));
+            const stagedInsertSql = constructStagedInsertSql(loadingTablePath, storedColumns);
+            let uncommittedRecordCount = 0;
             await connection.query('BEGIN TRANSACTION');
-            await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
-            await connection.query(constructCreateTableSql(options.path, storedColumns));
-            const stagedInsertSql = constructStagedInsertSql(options.path, storedColumns);
             for await (const records of chunks) {
                 signal.throwIfAborted();
                 await connection.insertArrowTable(constructArrowTable(records, storedColumns), { create: true, name: STAGING_TABLE });
                 await connection.query(stagedInsertSql);
                 await connection.query(`DROP TABLE ${STAGING_TABLE}`);
-                if (Math.floor((recordCount + records.length) / 50_000) > Math.floor(recordCount / 50_000)) {
-                    logLoadStep(`inserted ${String(recordCount + records.length)} records, ${await describeDuckDBMemory(openStore)}`);
-                }
                 recordCount += records.length;
+                uncommittedRecordCount += records.length;
+                if (uncommittedRecordCount < batchRecordCount) continue;
+                await connection.query('COMMIT');
+                await connection.query('BEGIN TRANSACTION');
+                uncommittedRecordCount = 0;
             }
-            logLoadStep(`all ${String(recordCount)} records inserted, ${await describeDuckDBMemory(openStore)}, starting COMMIT`);
+            await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(options.path)}`);
+            await connection.query(`ALTER TABLE ${loadingTableReference} RENAME TO ${quoteIdentifier(tableName)}`);
             await connection.query('COMMIT');
-            logLoadStep('COMMIT done, starting CHECKPOINT');
             await connection.query(databaseName == null ? 'CHECKPOINT' : `CHECKPOINT ${quoteIdentifier(databaseName)}`); // Writes the load into the database file now, not at some later point.
-            logLoadStep(`CHECKPOINT done, ${await describeDuckDBMemory(openStore)}`);
             return { recordCount };
         } catch (error) {
-            if (!this.storeWasTakenOver) await connection.query('ROLLBACK'); // A store another tab took is already closed, which undid the load.
+            if (!this.storeWasTakenOver) await discardLoadingTable(connection, loadingTableReference); // A store another tab took is already closed, which undid the batch in progress.
             throw this.normalizeActionError(error);
         }
     }
@@ -293,11 +302,8 @@ export class Connector implements ConnectorInterface {
                 throw constructStoreError('notLoaded', `'${options.path}' has not been loaded.`, 'dpuse-connector-duckdb-wasm.Connector.queryRecords');
             }
             const storeQuery = constructStoreQuery(constructStoredColumns(options.columnConfigs), options); // The query brings the columns the object was loaded with.
-            logLoadStep(`queryRecords page starting: ${storeQuery.pageSql}`);
             const pageTable = await runStatement(connection, storeQuery.pageSql, storeQuery.values);
-            logLoadStep(`queryRecords page done, count starting: ${storeQuery.countSql}`);
             const countTable = await runStatement(connection, storeQuery.countSql, storeQuery.values);
-            logLoadStep('queryRecords count done');
             return { records: readRecords(pageTable, storeQuery.resultColumns), totalCount: Number(countTable.getChildAt(0)?.get(0) ?? 0) };
         } catch (error) {
             throw this.normalizeActionError(error);
@@ -421,7 +427,8 @@ async function attachDatabase(openStore: OpenStore, path: string): Promise<{ dat
 
 // DuckDB only reads files in the private file system that it has been told of. So the database's file is registered
 // before it is attached, with the write-ahead log files kept beside it, as DuckDB does for the database it opens. A
-// failed attach is forgotten, so the next request tries again.
+// failed attach is forgotten, so the next request tries again. No load runs in a database before it is attached, so any
+// table a load was building there is one that never finished.
 async function attachDatabaseFile(openStore: OpenStore, databaseName: string): Promise<void> {
     const databasePath = `opfs://${databaseName}.duckdb`; // 'resolveStorePath' and the folder path check allow only letters, digits, '_' and '-' in a name.
     try {
@@ -429,6 +436,7 @@ async function attachDatabaseFile(openStore: OpenStore, databaseName: string): P
             await openStore.database.registerOPFSFileName(filePath);
         }
         await openStore.connection.query(`ATTACH '${databasePath}' AS ${quoteIdentifier(databaseName)}`);
+        await dropUnfinishedLoadingTables(openStore.connection, databaseName);
     } catch (error) {
         openStore.attachedDatabases.delete(databaseName);
         throw error;
@@ -565,22 +573,31 @@ async function findSourceTable(openStore: OpenStore, path: string): Promise<Sour
     return columnConfigs.length === 0 ? undefined : { columnConfigs, path };
 }
 
-// Temporary iOS crash test. Logs each step of a load, drop and query to the console, so the last line before the page
-// reloads names the step it failed in. Remove this and its uses in 'loadObjectRecords', 'dropObject' and 'queryRecords'
-// once tested.
-// DuckDB's own count of the memory it holds, its limit, and what it has spilled to temporary storage.
-async function describeDuckDBMemory(openStore: OpenStore): Promise<string> {
-    const table = await runStatement(
-        openStore.connection,
-        "SELECT sum(memory_usage_bytes)::DOUBLE, sum(temporary_storage_bytes)::DOUBLE, current_setting('memory_limit') FROM duckdb_memory()",
-        []
-    );
-    const toMegabytes = (value: unknown): string => `${String(Math.round(Number(value ?? 0) / 1_048_576))} MB`;
-    return `DuckDB memory ${toMegabytes(table.getChildAt(0)?.get(0))} of ${String(table.getChildAt(2)?.get(0))}, temporary ${toMegabytes(table.getChildAt(1)?.get(0))}`;
+// A load that never finished, such as when iOS reloaded the page, leaves the table it was building. The default database
+// is named by undefined.
+async function dropUnfinishedLoadingTables(connection: AsyncDuckDBConnection, databaseName: string | undefined): Promise<void> {
+    const table = await runStatement(connection, LOADING_TABLE_NAMES_SQL, [databaseName ?? null]);
+    for (let rowIndex = 0; rowIndex < table.numRows; rowIndex++) {
+        const tableName = String(table.getChildAt(0)?.get(rowIndex));
+        const tablePath = databaseName == null ? tableName : ['', databaseName, tableName].join('/');
+        await connection.query(`DROP TABLE IF EXISTS ${constructTableReference(tablePath)}`);
+    }
 }
 
-function logLoadStep(step: string): void {
-    console.info(`[duckdb load] ${new Date().toISOString()} ${step}`);
+// A failed load can leave a batch in progress or none, and 'ROLLBACK' with none in progress fails, so that failure is
+// ignored. A table that cannot be dropped is left for the next start or attach to drop, so the load's own failure is the
+// one reported.
+async function discardLoadingTable(connection: AsyncDuckDBConnection, loadingTableReference: string): Promise<void> {
+    try {
+        await connection.query('ROLLBACK');
+    } catch {
+        // No batch was in progress.
+    }
+    try {
+        await connection.query(`DROP TABLE IF EXISTS ${loadingTableReference}`);
+    } catch {
+        // Dropped when its database is next opened.
+    }
 }
 
 // Some private windows give no private file system, and DuckDB fails to open without one.
@@ -594,14 +611,25 @@ async function isPrivateFileSystemAvailable(): Promise<boolean> {
 }
 
 // DuckDB leaves a scratch folder of about 66 files in the private file system each time it starts, and does not remove
-// it when it ends. Only the tab holding the lock runs DuckDB, so no scratch folder is in use before it starts. Just
-// after DuckDB ends, its files can still be held for a moment, so a folder that cannot be removed yet is left for the
-// next start to remove.
+// it when it ends. A load that ends without its commit, such as when iOS reloads the page, also leaves the data it spilled
+// in the temporary directory, which DuckDB keeps at '/duckdb/fs/tmp' and never clears. Only the tab holding the lock runs
+// DuckDB, so neither folder is in use before it starts. Just after DuckDB ends, its files can still be held for a moment,
+// so a folder that cannot be removed yet is left for the next start to remove. Each folder is removed on its own, so one
+// that is missing or held does not keep the other.
 async function removeScratchFolders(): Promise<void> {
     try {
         const rootFolder = await navigator.storage.getDirectory();
         const duckdbFolder = await rootFolder.getDirectoryHandle('duckdb');
-        await duckdbFolder.removeEntry('scratch', { recursive: true });
+        await removeFolder(duckdbFolder, 'scratch');
+        await removeFolder(await duckdbFolder.getDirectoryHandle('fs'), 'tmp'); // Where 'TEMPORARY_DIRECTORY' is kept.
+    } catch {
+        // No folder to remove.
+    }
+}
+
+async function removeFolder(parentFolder: FileSystemDirectoryHandle, name: string): Promise<void> {
+    try {
+        await parentFolder.removeEntry(name, { recursive: true });
     } catch {
         // No folder to remove, or not removable yet.
     }
@@ -726,6 +754,7 @@ importScripts(policy ? policy.createScriptURL(url) : url);`;
         await database.open({ accessMode: DuckDBAccessMode.READ_WRITE, path: DATABASE_PATH, temporaryDirectory: TEMPORARY_DIRECTORY });
         const connection = await database.connect();
         await connection.query(`SET memory_limit = '${MEMORY_LIMIT}'`);
+        await dropUnfinishedLoadingTables(connection, undefined); // No load has started yet, so any table a load was building is one that never finished.
         return { attachedDatabases: new Map(), connection, database };
     } catch (error) {
         await database.terminate(); // Ends the worker, so a failed start leaves no files open.

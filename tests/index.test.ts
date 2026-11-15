@@ -28,7 +28,12 @@ type SqlValue = number | string | null; // The connector passes names as text, n
 const { openDuckDB } = vi.hoisted(() => ({ openDuckDB: vi.fn<() => Promise<void>>() }));
 vi.mock('@duckdb/duckdb-wasm', () => ({
     AsyncDuckDB: class {
-        connect = (): Promise<unknown> => Promise.resolve({ close: () => Promise.resolve(), query: () => Promise.resolve() });
+        connect = (): Promise<unknown> =>
+            Promise.resolve({
+                close: () => Promise.resolve(),
+                prepare: () => Promise.resolve({ close: () => Promise.resolve(), query: () => Promise.resolve({ numRows: 0 }) }), // The store starts with no unfinished loads.
+                query: () => Promise.resolve()
+            });
         instantiate = (): Promise<void> => Promise.resolve();
         open = openDuckDB;
         terminate = (): Promise<void> => Promise.resolve();
@@ -84,6 +89,20 @@ describe('Connector', () => {
 
         await expect(new Connector({} as never, []).openStore()).resolves.toEqual({ storeStateId: 'ready' });
         expect(openDuckDB).toHaveBeenCalledTimes(2);
+    });
+
+    it('clears the scratch folder and data spilled by an earlier crash before DuckDB starts, even when one is missing', async () => {
+        const removedEntries: string[] = [];
+        const fsFolder = constructFakeFolder('duckdb/fs', new Map(), removedEntries);
+        const duckdbFolder = constructFakeFolder('duckdb', new Map([['fs', fsFolder]]), removedEntries);
+        stubBrowser(undefined, constructFakeFolder('', new Map([['duckdb', duckdbFolder]]), removedEntries));
+        openDuckDB.mockImplementation(() => {
+            expect(removedEntries).toEqual(['duckdb/fs/tmp']);
+            return Promise.resolve();
+        });
+
+        await expect(new Connector({} as never, []).openStore()).resolves.toEqual({ storeStateId: 'ready' });
+        expect(openDuckDB).toHaveBeenCalledOnce();
     });
 
     it('takes the store over from the tab holding it, which ends DuckDB to free the files', async () => {
@@ -357,11 +376,11 @@ async function captureError(action: () => Promise<unknown>): Promise<unknown> {
 }
 
 // The browser features DuckDB's start needs: a private file system, Web Locks and workers. The Web Locks grant every
-// request unless real ones are given.
-function stubBrowser(locks?: unknown): void {
+// request unless real ones are given, and the private file system is empty unless a root folder is given.
+function stubBrowser(locks?: unknown, rootFolder?: unknown): void {
     vi.stubGlobal('navigator', {
         locks: locks ?? { request: (_name: string, _options: unknown, grant: (lock: unknown) => Promise<void> | undefined) => grant({}) },
-        storage: { getDirectory: () => Promise.resolve({ getDirectoryHandle: () => Promise.reject(new Error('Not found.')) }) }
+        storage: { getDirectory: () => Promise.resolve(rootFolder ?? { getDirectoryHandle: () => Promise.reject(new Error('Not found.')) }) }
     });
     vi.stubGlobal(
         'Worker',
@@ -371,6 +390,19 @@ function stubBrowser(locks?: unknown): void {
             }
         }
     );
+}
+
+// A private file system folder holding the folders given. Every removal is recorded by its path, except of 'scratch',
+// which is never there.
+function constructFakeFolder(path: string, childFolders: Map<string, unknown>, removedEntries: string[]): unknown {
+    return {
+        getDirectoryHandle: (childName: string) => (childFolders.has(childName) ? Promise.resolve(childFolders.get(childName)) : Promise.reject(new Error('Not found.'))),
+        removeEntry: (entryName: string) => {
+            if (entryName === 'scratch') return Promise.reject(new Error('Not found.'));
+            removedEntries.push(`${path}/${entryName}`);
+            return Promise.resolve();
+        }
+    };
 }
 
 // DuckDB runs in a worker of its own, so a fake connection that answers the connector's SQL from the tables given

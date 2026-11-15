@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "0.14.0",
-    "generatedAt": "2026-11-15T14:52:01.301Z",
+    "generatedAt": "2026-11-15T15:58:13.101Z",
     "integration": "vite",
     "sources": false,
     "gzip": true,
@@ -21,7 +21,7 @@
       "name": "[unassigned]",
       "type": "other",
       "format": "other",
-      "uncompressed": 17092,
+      "uncompressed": 17114,
       "gzip": 653,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
@@ -30,8 +30,8 @@
       "kind": "asset",
       "name": "dist/dpuse-connector-duckdb-wasm.es.js",
       "type": "script",
-      "uncompressed": 275501,
-      "gzip": 58989,
+      "uncompressed": 275673,
+      "gzip": 58975,
       "brotli": 0
     },
     {
@@ -47,7 +47,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 10929,
-      "gzip": 2519,
+      "gzip": 2520,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -64,7 +64,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 25055,
-      "gzip": 4824,
+      "gzip": 4825,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -263,7 +263,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 8814,
-      "gzip": 1450,
+      "gzip": 1451,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -280,7 +280,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 2022,
-      "gzip": 476,
+      "gzip": 477,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -321,7 +321,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 495,
-      "gzip": 188,
+      "gzip": 189,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -753,7 +753,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 569,
-      "gzip": 191,
+      "gzip": 192,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -889,7 +889,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 1654,
-      "gzip": 375,
+      "gzip": 376,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1020,7 +1020,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 922,
-      "gzip": 286,
+      "gzip": 287,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1122,7 +1122,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 4326,
-      "gzip": 1028,
+      "gzip": 1029,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1218,7 +1218,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 4773,
-      "gzip": 1025,
+      "gzip": 1026,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1269,7 +1269,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 8635,
-      "gzip": 1930,
+      "gzip": 1931,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1286,7 +1286,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 12709,
-      "gzip": 2010,
+      "gzip": 2011,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1320,7 +1320,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 5886,
-      "gzip": 1408,
+      "gzip": 1409,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1422,7 +1422,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 11496,
-      "gzip": 1767,
+      "gzip": 1768,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1456,7 +1456,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 1774,
-      "gzip": 574,
+      "gzip": 575,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1541,7 +1541,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 6548,
-      "gzip": 1010,
+      "gzip": 1011,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1718,7 +1718,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 2343,
-      "gzip": 479,
+      "gzip": 480,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1899,7 +1899,7 @@
       "type": "script",
       "format": "esm",
       "uncompressed": 174,
-      "gzip": 96,
+      "gzip": 97,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1925,15 +1925,15 @@
       "name": "src/duckdbSql.ts",
       "type": "script",
       "format": "esm",
-      "uncompressed": 13248
+      "uncompressed": 13853
     },
     {
       "kind": "chunk",
       "name": "src/duckdbSql.ts",
       "type": "script",
       "format": "esm",
-      "uncompressed": 8070,
-      "gzip": 1931,
+      "uncompressed": 8379,
+      "gzip": 1982,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     },
@@ -1942,15 +1942,15 @@
       "name": "src/index.ts",
       "type": "script",
       "format": "esm",
-      "uncompressed": 22285
+      "uncompressed": 22777
     },
     {
       "kind": "chunk",
       "name": "src/index.ts",
       "type": "script",
       "format": "esm",
-      "uncompressed": 13151,
-      "gzip": 3274,
+      "uncompressed": 12992,
+      "gzip": 3197,
       "brotli": 0,
       "parent": "dist/dpuse-connector-duckdb-wasm.es.js"
     }

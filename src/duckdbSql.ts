@@ -44,12 +44,23 @@ export const TABLE_COLUMNS_SQL = 'SELECT column_name, data_type FROM duckdb_colu
 // Counts the tables with the name given, in the database given or, when it is null, in the store's default database.
 export const TABLE_COUNT_SQL = 'SELECT count(*) FROM duckdb_tables() WHERE table_name = ? AND database_name = coalesce(?, current_database())';
 
-// Each chunk of a load goes into this table first, then into the object's table with each value cast to its type.
-export const STAGING_TABLE = '_dpuse_staging';
+// The store's own tables start with this, so they are never listed as data views.
+const INTERNAL_TABLE_PREFIX = '_dpuse_';
 
-// Names the store's tables in the database given or, when it is null, in the store's default database. The staging table
-// is left out, because it holds a load's chunk, not a data view.
-export const TABLE_NAMES_SQL = `SELECT table_name FROM duckdb_tables() WHERE database_name = coalesce(?, current_database()) AND NOT temporary AND table_name <> '${STAGING_TABLE}' ORDER BY table_name`;
+// A load builds its table under this prefix, beside the object's, and renames it to the object's name once every record
+// is in.
+const LOADING_TABLE_PREFIX = `${INTERNAL_TABLE_PREFIX}loading_`;
+
+// Each chunk of a load goes into this table first, then into the table being loaded with each value cast to its type.
+export const STAGING_TABLE = `${INTERNAL_TABLE_PREFIX}staging`;
+
+// Names the store's tables in the database given or, when it is null, in the store's default database. The store's own
+// tables are left out, because they hold a load in progress, not a data view.
+export const TABLE_NAMES_SQL = `SELECT table_name FROM duckdb_tables() WHERE database_name = coalesce(?, current_database()) AND NOT temporary AND NOT starts_with(table_name, '${INTERNAL_TABLE_PREFIX}') ORDER BY table_name`;
+
+// Names the tables of loads that never finished, such as when the page reloaded, in the database given or, when it is
+// null, in the store's default database.
+export const LOADING_TABLE_NAMES_SQL = `SELECT table_name FROM duckdb_tables() WHERE database_name = coalesce(?, current_database()) AND starts_with(table_name, '${LOADING_TABLE_PREFIX}')`;
 
 const LIKE_ESCAPE_SQL = String.raw`ESCAPE '\'`; // Lets a filter match '%' and '_' as written, not as wildcards.
 
@@ -155,6 +166,13 @@ export function quoteIdentifier(name: string): string {
 export function constructTableReference(path: string): string {
     const { databaseName, tableName } = resolveStoreTable(path);
     return databaseName == null ? quoteIdentifier(tableName) : `${quoteIdentifier(databaseName)}.${quoteIdentifier(tableName)}`;
+}
+
+// The path of the table a load builds before it takes the object's place, in the object's database.
+export function constructLoadingTablePath(path: string): string {
+    const { databaseName, tableName } = resolveStoreTable(path);
+    const loadingTableName = `${LOADING_TABLE_PREFIX}${tableName}`;
+    return databaseName == null ? loadingTableName : `/${databaseName}/${loadingTableName}`;
 }
 
 // The database a path names, undefined for the default database, which DuckDB opens with the store rather than attaches.
