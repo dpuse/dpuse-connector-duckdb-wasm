@@ -1,5 +1,5 @@
 {
-  "version": "1.0.144",
+  "version": "1.0.145",
   "name": "@dpuse/dpuse-connector-duckdb-wasm",
   "dependencies": {
     "@dpuse/dpuse-development": {
@@ -1502,8 +1502,8 @@
           }
         },
         "eslint-plugin-jsdoc": {
-          "version": "65.4.10",
-          "resolved": "https://registry.npmjs.org/eslint-plugin-jsdoc/-/eslint-plugin-jsdoc-65.4.10.tgz",
+          "version": "65.4.11",
+          "resolved": "https://registry.npmjs.org/eslint-plugin-jsdoc/-/eslint-plugin-jsdoc-65.4.11.tgz",
           "overridden": false,
           "dependencies": {
             "@es-joy/escodegen": {

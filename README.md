@@ -121,7 +121,7 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 
 | Chunk/Module/File                                                             | Composition                                                                                     |
 | :---------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
-| **dist/dpuse-connector-duckdb-wasm.es.js**                                    | 271.8&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;58.3&nbsp;kB&nbsp;·&nbsp;100.0%&nbsp;of&nbsp;the&nbsp;build |
+| **dist/dpuse-connector-duckdb-wasm.es.js**                                    | 272.0&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;58.3&nbsp;kB&nbsp;·&nbsp;100.0%&nbsp;of&nbsp;the&nbsp;build |
 | &nbsp;&nbsp;&nbsp;&nbsp;apache-arrow → ipc/reader.mjs + 84 more               | `██████████████░░░░░░`&nbsp;67.8%&nbsp;·&nbsp;184.4&nbsp;kB                                     |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ ipc/reader.mjs              | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.6%&nbsp;·&nbsp;12.4&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ type.mjs                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.2%&nbsp;·&nbsp;11.4&nbsp;kB                                       |
@@ -169,7 +169,7 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/body-compression.mjs     | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.4%&nbsp;·&nbsp;1008&nbsp;B                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ util/recordbatch.mjs        | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.4%&nbsp;·&nbsp;1004&nbsp;B                                        |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/timestamp.mjs            | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.3%&nbsp;·&nbsp;952&nbsp;B                                         |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/key-value.mjs            | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.3%&nbsp;·&nbsp;925&nbsp;B                                         |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/key-value.mjs            | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.3%&nbsp;·&nbsp;926&nbsp;B                                         |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/time.mjs                 | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.3%&nbsp;·&nbsp;922&nbsp;B                                         |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/int.mjs                  | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.3%&nbsp;·&nbsp;907&nbsp;B                                         |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ util/compat.mjs             | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.3%&nbsp;·&nbsp;893&nbsp;B                                         |
@@ -177,8 +177,8 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ fb/floating-point.mjs       | `░░░░░░░░░░░░░░░░░░░░`&nbsp;0.3%&nbsp;·&nbsp;797&nbsp;B                                         |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ 33 smaller files            | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.7%&nbsp;·&nbsp;12.9&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;@duckdb/duckdb-wasm → dist/duckdb-browser.mjs         | `██░░░░░░░░░░░░░░░░░░`&nbsp;9.0%&nbsp;·&nbsp;24.5&nbsp;kB                                       |
-| &nbsp;&nbsp;&nbsp;&nbsp;src → index.ts + 1 more                               | `██░░░░░░░░░░░░░░░░░░`&nbsp;8.5%&nbsp;·&nbsp;23.0&nbsp;kB                                       |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ index.ts                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.7%&nbsp;·&nbsp;12.7&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;src → index.ts + 1 more                               | `██░░░░░░░░░░░░░░░░░░`&nbsp;8.5%&nbsp;·&nbsp;23.2&nbsp;kB                                       |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ index.ts                    | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;4.7%&nbsp;·&nbsp;12.9&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ duckdbSql.ts                | `▒░░░░░░░░░░░░░░░░░░░`&nbsp;3.8%&nbsp;·&nbsp;10.3&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;@dpuse/dpuse-shared → dist/dpuse-shared.es.js         | `█░░░░░░░░░░░░░░░░░░░`&nbsp;3.9%&nbsp;·&nbsp;10.7&nbsp;kB                                       |
 | &nbsp;&nbsp;&nbsp;&nbsp;flatbuffers → mjs/builder.js + 3 more                 | `█░░░░░░░░░░░░░░░░░░░`&nbsp;3.6%&nbsp;·&nbsp;9.8&nbsp;kB                                        |

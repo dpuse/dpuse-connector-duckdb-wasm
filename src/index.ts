@@ -74,6 +74,12 @@ interface OpenStore {
     database: AsyncDuckDB;
 }
 
+// The parts of 'navigator' that show a desktop with memory to spare. Only Chromium browsers have them.
+interface DeviceNavigator {
+    deviceMemory?: number; // Gigabytes, rounded to a power of two and capped by the browser.
+    userAgentData?: { mobile: boolean };
+}
+
 // A table a source action reads, with its columns as they were created.
 interface SourceTable {
     columnConfigs: ObjectColumnConfig[];
@@ -85,11 +91,15 @@ interface SourceTable {
 const DATABASE_FILE_PATTERN = /^opfs:\/\/([\w-]+)\.duckdb$/u; // A database's file, as DuckDB lists it.
 const DATABASE_PATH = `opfs://${DEFAULT_DATABASE_NAME}.duckdb`;
 const DEFAULT_CHUNK_SIZE = 10_000; // Records read at a time by an audit or a retrieve.
+// A desktop has memory to spare, and with more of it DuckDB reads every record of a stored table, as an audit or a
+// retrieve does, several times faster. Loads and queries take the same time at either limit.
+const DESKTOP_MEMORY_LIMIT = '1GB';
 const HELD_ELSEWHERE_MESSAGE = 'The store is open in another tab or window.';
 const LOCK_NAME = 'dpuse-connector-duckdb-wasm'; // Held by the one tab that has the store open.
 // DuckDB holds data in memory up to this limit and spills the rest to its temporary directory. Its default is far above
 // what iOS allows a page, so a large load grew until iOS reloaded the page.
 const MEMORY_LIMIT = '256MB';
+const MIN_DESKTOP_DEVICE_MEMORY = 4; // Gigabytes, as the browser reports them.
 const PREVIEW_RECORD_COUNT = 50;
 const START_ATTEMPT_COUNT = 10; // Starts tried while an ended worker still holds the database's files.
 const START_RETRY_DELAY_MS = 200;
@@ -703,6 +713,20 @@ function readRecords(table: Table, resultColumns: (StoredColumn | undefined)[]):
     );
 }
 
+// Only a browser that reports enough memory, and that it is not on a phone or tablet, gets the desktop limit. Safari
+// and Firefox report neither, so they keep the lower limit, as does every iPhone and iPad, whose browsers are all built
+// on Safari's engine.
+// TODO: Look further at how the limit is chosen, because what a browser reports about its device is limited. Only
+// Chromium browsers report memory ('deviceMemory') or whether the device is mobile ('userAgentData.mobile'), so Safari
+// and Firefox on a desktop keep the lower limit although they could take more. A worker cannot read 'maxTouchPoints',
+// the usual way to tell an iPad from a Mac, so telling those apart would need the app to pass the device in. Both limits
+// were measured in Chromium on a Mac in November 2026. No iPhone, iPad or Android device has been measured.
+function resolveMemoryLimit(): string {
+    // eslint-disable-next-line n/no-unsupported-features/node-builtins -- The browser's 'navigator', not Node's.
+    const { deviceMemory = 0, userAgentData } = globalThis.navigator as DeviceNavigator;
+    return userAgentData?.mobile === false && deviceMemory >= MIN_DESKTOP_DEVICE_MEMORY ? DESKTOP_MEMORY_LIMIT : MEMORY_LIMIT;
+}
+
 async function runStatement(connection: AsyncDuckDBConnection, sql: string, values: unknown[]): Promise<Table> {
     const statement = await connection.prepare(sql);
     try {
@@ -752,7 +776,7 @@ importScripts(policy ? policy.createScriptURL(url) : url);`;
         await Promise.race([database.instantiate(new URL(WASM_FILE_NAME, import.meta.url).href), workerFailure.promise]);
         await database.open({ accessMode: DuckDBAccessMode.READ_WRITE, path: DATABASE_PATH, temporaryDirectory: TEMPORARY_DIRECTORY });
         const connection = await database.connect();
-        await connection.query(`SET memory_limit = '${MEMORY_LIMIT}'`);
+        await connection.query(`SET memory_limit = '${resolveMemoryLimit()}'`);
         await dropUnfinishedLoadingTables(connection, undefined); // No load has started yet, so any table a load was building is one that never finished.
         return { attachedDatabases: new Map(), connection, database };
     } catch (error) {

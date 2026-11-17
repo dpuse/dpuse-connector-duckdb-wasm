@@ -25,14 +25,14 @@ type SqlValue = number | string | null; // The connector passes names as text, n
 
 // DuckDB's browser build starts a worker, which tests cannot run, so a stand-in whose open can be made to fail takes its
 // place.
-const { openDuckDB } = vi.hoisted(() => ({ openDuckDB: vi.fn<() => Promise<void>>() }));
+const { openDuckDB, queryDuckDB } = vi.hoisted(() => ({ openDuckDB: vi.fn<() => Promise<void>>(), queryDuckDB: vi.fn<(sql: string) => Promise<void>>() }));
 vi.mock('@duckdb/duckdb-wasm', () => ({
     AsyncDuckDB: class {
         connect = (): Promise<unknown> =>
             Promise.resolve({
                 close: () => Promise.resolve(),
                 prepare: () => Promise.resolve({ close: () => Promise.resolve(), query: () => Promise.resolve({ numRows: 0 }) }), // The store starts with no unfinished loads.
-                query: () => Promise.resolve()
+                query: queryDuckDB
             });
         instantiate = (): Promise<void> => Promise.resolve();
         open = openDuckDB;
@@ -56,6 +56,7 @@ describe('Connector', () => {
     afterEach(() => {
         vi.unstubAllGlobals();
         openDuckDB.mockReset();
+        queryDuckDB.mockReset();
     });
 
     it('refuses store actions until the store is open', async () => {
@@ -89,6 +90,22 @@ describe('Connector', () => {
 
         await expect(new Connector({} as never, []).openStore()).resolves.toEqual({ storeStateId: 'ready' });
         expect(openDuckDB).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([
+        ['a desktop that reports 8 GB of memory', { deviceMemory: 8, userAgentData: { mobile: false } }, '1GB'],
+        ['a desktop that reports 4 GB of memory', { deviceMemory: 4, userAgentData: { mobile: false } }, '1GB'],
+        ['a desktop that reports 2 GB of memory', { deviceMemory: 2, userAgentData: { mobile: false } }, '256MB'],
+        ['a phone that reports 8 GB of memory', { deviceMemory: 8, userAgentData: { mobile: true } }, '256MB'],
+        ['a browser that reports memory but not whether it is mobile', { deviceMemory: 8 }, '256MB'],
+        ['a browser that reports nothing about the device, as Safari and Firefox do', {}, '256MB']
+    ])('gives DuckDB the memory limit for %s', async (_, device, memoryLimit) => {
+        stubBrowser();
+        Object.assign(navigator, device); // What this browser reports about its device.
+
+        await new Connector({} as never, []).openStore();
+
+        expect(queryDuckDB).toHaveBeenCalledWith(`SET memory_limit = '${memoryLimit}'`);
     });
 
     it('clears the scratch folder and data spilled by an earlier crash before DuckDB starts, even when one is missing', async () => {
