@@ -389,7 +389,7 @@ export class Connector implements ConnectorInterface {
         this.releaseLock = releaseLock;
         try {
             await removeScratchFolders(); // Clears any left by a tab that closed while DuckDB was running.
-            this.openStoreState = await startDuckDBWhenFilesAreFree();
+            this.openStoreState = await startDuckDBWhenFilesAreFree(this.connectorUtilities.isLogged);
             this.storeWasTakenOver = false;
             return { storeStateId: 'ready' };
         } catch (error) {
@@ -739,10 +739,10 @@ async function runStatement(connection: AsyncDuckDBConnection, sql: string, valu
 // A worker that has just ended can still hold the database's files for a moment, so DuckDB cannot open them and the
 // browser reports 'NoModificationAllowedError'. That happens when the store opens again just after it closed, so the
 // start is tried again after a short wait.
-async function startDuckDBWhenFilesAreFree(): Promise<OpenStore> {
+async function startDuckDBWhenFilesAreFree(isLogged: boolean): Promise<OpenStore> {
     for (let attemptNumber = 1; ; attemptNumber++) {
         try {
-            return await startDuckDB();
+            return await startDuckDB(isLogged);
         } catch (error) {
             const isFileHeld = error instanceof Error && (error.name === 'NoModificationAllowedError' || error.message.includes('Access Handles cannot be created'));
             if (!isFileHeld || attemptNumber >= START_ATTEMPT_COUNT) throw error;
@@ -757,7 +757,7 @@ async function startDuckDBWhenFilesAreFree(): Promise<OpenStore> {
 // the worker starts from a local blob that loads DuckDB's worker script from beside this one. DuckDB's script only runs
 // as a classic worker, and where the page enforces Trusted Types the blob must approve that one URL itself, because a
 // policy cannot be shared with another worker.
-async function startDuckDB(): Promise<OpenStore> {
+async function startDuckDB(isLogged: boolean): Promise<OpenStore> {
     const workerScriptURL = JSON.stringify(new URL(WORKER_FILE_NAME, import.meta.url).href);
     const policyName = JSON.stringify(TRUSTED_TYPES_POLICY_NAME);
     const bootstrapScript = `const url = ${workerScriptURL};
@@ -778,10 +778,11 @@ importScripts(policy ? policy.createScriptURL(url) : url);`;
         const connection = await database.connect();
         const memoryLimit = resolveMemoryLimit();
         await connection.query(`SET memory_limit = '${memoryLimit}'`);
-        // TODO: Remove once the limit has been checked on each kind of device. Logs the limit DuckDB reports back, which
-        // it words in its own units, beside the one asked for.
-        const memoryLimitTable = await connection.query("SELECT current_setting('memory_limit')");
-        console.info(`DuckDB memory limit: asked for ${memoryLimit}, DuckDB reports ${String(memoryLimitTable.getChildAt(0)?.get(0))}.`);
+        if (isLogged) {
+            // DuckDB reports the limit it holds, worded in its own units, so the limit chosen for a device can be checked.
+            const memoryLimitTable = await connection.query("SELECT current_setting('memory_limit')");
+            console.info(`[dpuse:duckdb] ℹ️  Memory limit: asked for ${memoryLimit}, DuckDB reports ${String(memoryLimitTable.getChildAt(0)?.get(0))}.`);
+        }
         await dropUnfinishedLoadingTables(connection, undefined); // No load has started yet, so any table a load was building is one that never finished.
         return { attachedDatabases: new Map(), connection, database };
     } catch (error) {

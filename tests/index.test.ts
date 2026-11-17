@@ -111,6 +111,20 @@ describe('Connector', () => {
         expect(queryDuckDB).toHaveBeenCalledWith(`SET memory_limit = '${memoryLimit}'`);
     });
 
+    it('logs the memory limit DuckDB reports only when the engine says messages are logged', async () => {
+        const logInfo = vi.spyOn(console, 'info').mockImplementation(() => {
+            // Keeps the message out of the test output.
+        });
+        stubBrowser();
+
+        await new Connector({ isLogged: false } as never, []).openStore();
+        expect(logInfo).not.toHaveBeenCalled();
+
+        await new Connector({ isLogged: true } as never, []).openStore();
+        expect(logInfo).toHaveBeenCalledExactlyOnceWith('[dpuse:duckdb] ℹ️  Memory limit: asked for 256MB, DuckDB reports 244.1 MiB.');
+        logInfo.mockRestore();
+    });
+
     it('clears the scratch folder and data spilled by an earlier crash before DuckDB starts, even when one is missing', async () => {
         const removedEntries: string[] = [];
         const fsFolder = constructFakeFolder('duckdb/fs', new Map(), removedEntries);
