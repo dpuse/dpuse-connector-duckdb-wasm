@@ -1,14 +1,14 @@
 {
-  "version": "1.0.142",
+  "version": "1.0.143",
   "name": "@dpuse/dpuse-connector-duckdb-wasm",
   "dependencies": {
     "@dpuse/dpuse-development": {
-      "version": "1.0.155",
-      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-development/-/dpuse-development-1.0.155.tgz",
+      "version": "1.0.156",
+      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-development/-/dpuse-development-1.0.156.tgz",
       "overridden": false,
       "dependencies": {
         "@dpuse/dpuse-shared": {
-          "version": "1.0.236"
+          "version": "1.0.238"
         },
         "license-checker-rseidelsohn": {
           "version": "5.0.1",
@@ -1194,8 +1194,8 @@
       }
     },
     "@dpuse/dpuse-shared": {
-      "version": "1.0.236",
-      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-shared/-/dpuse-shared-1.0.236.tgz",
+      "version": "1.0.238",
+      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-shared/-/dpuse-shared-1.0.238.tgz",
       "overridden": false,
       "dependencies": {
         "file-type": {
@@ -3385,8 +3385,8 @@
           "dependencies": {
             "@microsoft/api-extractor": {},
             "@rollup/pluginutils": {
-              "version": "5.4.0",
-              "resolved": "https://registry.npmjs.org/@rollup/pluginutils/-/pluginutils-5.4.0.tgz",
+              "version": "5.5.1",
+              "resolved": "https://registry.npmjs.org/@rollup/pluginutils/-/pluginutils-5.5.1.tgz",
               "overridden": false,
               "dependencies": {
                 "@types/estree": {
