@@ -37,6 +37,7 @@ import type {
     RetrieveRecordsChunk,
     RetrieveRecordsOptions,
     RetrieveRecordsSummary,
+    StoreChunk,
     StoreRecord,
     ToolConfig
 } from '@dpuse/dpuse-shared';
@@ -111,6 +112,7 @@ const workerScriptURLPolicy = createWorkerScriptURLPolicy();
 export class Connector implements ConnectorInterface {
     private readonly connectorUtilities: ConnectorUtilities;
     private readonly toolConfigs;
+    readonly storeChunkLayoutId = 'columns'; // DuckDB keeps its data by column, so a load's chunks come as columns and need no rearranging.
     openStoreState: OpenStore | undefined;
     pendingCloseStore: Promise<void> | undefined;
     pendingOpenStore: Promise<OpenStoreResult> | undefined;
@@ -211,7 +213,7 @@ export class Connector implements ConnectorInterface {
     // one transaction stalled or failed. Once every record is in, one short transaction puts the new table in place of
     // the earlier one, so a failed or stopped load leaves the earlier one in place. The columns' types are not kept,
     // because every query brings them.
-    async loadObjectRecords(options: LoadObjectRecordsOptions, chunks: AsyncIterable<StoreRecord[]>): Promise<LoadObjectRecordsResult> {
+    async loadObjectRecords(options: LoadObjectRecordsOptions, chunks: AsyncIterable<StoreChunk>): Promise<LoadObjectRecordsResult> {
         const openStore = this.establishOpenStore();
         const { connection } = openStore;
         const { databaseName, tableName } = await attachDatabase(openStore, options.path);
@@ -227,11 +229,12 @@ export class Connector implements ConnectorInterface {
             const insertOptions = { create: false, name: resolveStoreTable(loadingTablePath).tableName, ...(databaseName != null && { schema: databaseName }) }; // DuckDB names a table in another database by 'schema'.
             let uncommittedRecordCount = 0;
             await connection.query('BEGIN TRANSACTION');
-            for await (const records of chunks) {
+            for await (const chunk of chunks) {
                 signal.throwIfAborted();
-                await connection.insertArrowTable(constructArrowTable(records, storedColumns), insertOptions);
-                recordCount += records.length;
-                uncommittedRecordCount += records.length;
+                const chunkRecordCount = Array.isArray(chunk) ? chunk.length : chunk.recordCount; // Records from an engine that does not yet hand over columns.
+                await connection.insertArrowTable(constructArrowTable(chunk, storedColumns), insertOptions);
+                recordCount += chunkRecordCount;
+                uncommittedRecordCount += chunkRecordCount;
                 if (uncommittedRecordCount < batchRecordCount) continue;
                 await connection.query('COMMIT');
                 await connection.query('BEGIN TRANSACTION');

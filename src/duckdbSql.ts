@@ -3,7 +3,8 @@ import { Bool, DateDay, Float64, Int64, makeData, makeVector, Table, TimeMillise
 
 // ── DPUse Framework
 import { resolveStorePath } from '@dpuse/dpuse-shared';
-import type { DataSubtypeId, DataTypeId, ObjectColumnConfig, QueryAggregate, QueryFilter, QueryRecordsOptions, QuerySort, StoreRecord, StoreValue } from '@dpuse/dpuse-shared';
+import type { DataSubtypeId, DataTypeId, ObjectColumnConfig, QueryAggregate, QueryFilter, QueryRecordsOptions, QuerySort, StoreRecord } from '@dpuse/dpuse-shared';
+import type { StoreChunk, StoreColumnChunk, StoreValue } from '@dpuse/dpuse-shared';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -86,9 +87,10 @@ export function constructCreateTableSql(path: string, storedColumns: StoredColum
 // Records go into DuckDB as Arrow columns, each in the Arrow type of its column in the table, so a chunk is appended to
 // the table as it is, with nothing to convert on the way. Each column is built straight from typed arrays, because
 // Arrow's own builders compile code at run time, which the app's Content Security Policy forbids.
-export function constructArrowTable(records: StoreRecord[], storedColumns: StoredColumn[]): Table {
+export function constructArrowTable(chunk: StoreChunk, storedColumns: StoredColumn[]): Table {
+    const arrowVectors = Array.isArray(chunk) ? constructArrowVectors(chunk, storedColumns) : constructArrowVectorsFromColumns(chunk, storedColumns);
     const vectors: Record<string, Vector> = {};
-    for (const [columnIndex, vector] of constructArrowVectors(records, storedColumns).entries()) vectors[columnName(columnIndex)] = vector;
+    for (const [columnIndex, vector] of arrowVectors.entries()) vectors[columnName(columnIndex)] = vector;
     return new Table(vectors);
 }
 
@@ -209,6 +211,21 @@ function constructArrowVectors(records: StoreRecord[], storedColumns: StoredColu
         index++;
     }
     return builders.map((builder) => builder.finish(length - builder.presentCount));
+}
+
+// A chunk that came as columns needs no rearranging: each column's values are read down its own list.
+function constructArrowVectorsFromColumns({ columns, recordCount }: StoreColumnChunk, storedColumns: StoredColumn[]): Vector[] {
+    return storedColumns.map((storedColumn, columnIndex) => {
+        const builder = constructColumnBuilder(storedColumn, recordCount);
+        const values = columns[columnIndex] ?? [];
+        for (let index = 0; index < recordCount; index++) {
+            const value = values[index];
+            if (value == null || !builder.isWritten(index, value)) continue;
+            setBit(builder.nullBitmap, index);
+            builder.presentCount++;
+        }
+        return builder.finish(recordCount - builder.presentCount);
+    });
 }
 
 // A column with no audited type has no values, so it takes none and is all null.

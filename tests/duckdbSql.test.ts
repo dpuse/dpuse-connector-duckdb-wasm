@@ -1,4 +1,5 @@
 // ── External Dependencies & Registrations
+import type { Table } from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
 // ── DPUse Framework
@@ -80,6 +81,25 @@ describe('constructArrowTable', () => {
     });
 });
 
+describe('constructArrowTable columns', () => {
+    it('builds the same table from a chunk of columns as from the same values record by record', () => {
+        const date = new Date('2026-10-28T00:00:00Z');
+        const records = [
+            ['Ünïcode', 3, true, date, 'ignored'],
+            [null, null, false, null, null],
+            ['', 2n, null, date, null]
+        ];
+        const columns = STORED_COLUMNS.map((_, columnIndex) => records.map((record) => record[columnIndex] ?? null));
+
+        const recordTable = constructArrowTable(records, STORED_COLUMNS);
+        const columnTable = constructArrowTable({ columns, recordCount: records.length }, STORED_COLUMNS);
+
+        expect(columnTable.numRows).toBe(3);
+        expect(describeRows(columnTable)).toEqual(describeRows(recordTable));
+        expect(STORED_COLUMNS.map((_, columnIndex) => columnTable.getChildAt(columnIndex)?.nullCount)).toEqual(STORED_COLUMNS.map((_, columnIndex) => recordTable.getChildAt(columnIndex)?.nullCount));
+    });
+});
+
 describe('constructArrowTable text', () => {
     it('keeps text of any length and script, with nulls between values', () => {
         const longText = 'é😀 long '.repeat(500); // Far past the room a column of text starts with.
@@ -156,4 +176,13 @@ describe('fromStoredValue', () => {
 
 function constructQuery(options: Partial<QueryRecordsOptions>): QueryRecordsOptions {
     return { aggregates: [], columnConfigs: [], filters: [], groupColumnIndexes: [], limit: 100, offset: 0, path: 'sales', sorts: [], ...options };
+}
+
+// Each row of an Arrow table as text, so two tables can be compared whatever types their values have.
+function describeRows(table: Table): string[] {
+    return Array.from(table, (row: unknown) => JSON.stringify(row, stringifyBigInt));
+}
+
+function stringifyBigInt(_key: string, value: unknown): unknown {
+    return typeof value === 'bigint' ? `${value.toString()}n` : value;
 }
