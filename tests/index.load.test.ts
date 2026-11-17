@@ -125,7 +125,7 @@ async function constructConnection(): Promise<Connection> {
 function constructConnector(): Connector {
     const connector = new Connector({} as never, []);
     const asyncConnection = {
-        insertArrowTable: (table: Table, options: { create: boolean; name: string }): Promise<void> => {
+        insertArrowTable: (table: Table, options: { create: boolean; name: string; schema?: string }): Promise<void> => {
             connection.insertArrowFromIPCStream(tableToIPC(table, 'stream'), options);
             return Promise.resolve();
         },

@@ -1,5 +1,5 @@
 // ── External Dependencies & Registrations
-import { Bool, Float64, Int64, makeData, makeVector, Table, Utf8, type Vector } from 'apache-arrow';
+import { Bool, DateDay, Float64, Int64, makeData, makeVector, Table, TimeMillisecond, TimestampMillisecond, Utf8, type Vector } from 'apache-arrow';
 
 // ── DPUse Framework
 import { resolveStorePath } from '@dpuse/dpuse-shared';
@@ -18,11 +18,6 @@ export interface StoreQuery {
     pageSql: string;
     resultColumns: (StoredColumn | undefined)[]; // Undefined for counts, sums and averages, which are plain numbers.
     values: QueryValue[];
-}
-
-interface PresentValue {
-    index: number;
-    value: Exclude<StoreValue, null>;
 }
 
 type QueryValue = boolean | number | string | null;
@@ -72,6 +67,10 @@ const ROW_GROUP_RECORD_COUNT = 122_880;
 const LIKE_ESCAPE_SQL = String.raw`ESCAPE '\'`; // Lets a filter match '%' and '_' as written, not as wildcards.
 
 const MICROSECONDS_PER_MILLISECOND = 1000;
+const MILLISECONDS_PER_DAY = 86_400_000;
+const MAX_ASCII_CODE = 0x7f;
+const MAX_BYTES_PER_CHARACTER = 3; // The most bytes one UTF-16 unit takes in UTF-8.
+const INITIAL_BYTES_PER_TEXT = 16; // The room a column of text starts with for each value, before it grows.
 
 // ── Actions ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -84,27 +83,13 @@ export function constructCreateTableSql(path: string, storedColumns: StoredColum
     return `CREATE TABLE ${constructTableReference(path)} (${columnDefinitions.join(', ')})`;
 }
 
-// Records go into DuckDB as Arrow columns. Each column is built straight from typed arrays, because Arrow's own builders
-// compile code at run time, which the app's Content Security Policy forbids. Dates go in as milliseconds and become
-// their column's type in 'constructStagedInsertSql'.
+// Records go into DuckDB as Arrow columns, each in the Arrow type of its column in the table, so a chunk is appended to
+// the table as it is, with nothing to convert on the way. Each column is built straight from typed arrays, because
+// Arrow's own builders compile code at run time, which the app's Content Security Policy forbids.
 export function constructArrowTable(records: StoreRecord[], storedColumns: StoredColumn[]): Table {
-    const vectors = Object.fromEntries(
-        storedColumns.map((storedColumn, columnIndex) => [
-            columnName(columnIndex),
-            constructArrowVector(
-                records.map((record) => record[columnIndex] ?? null),
-                storedColumn
-            )
-        ])
-    );
+    const vectors: Record<string, Vector> = {};
+    for (const [columnIndex, vector] of constructArrowVectors(records, storedColumns).entries()) vectors[columnName(columnIndex)] = vector;
     return new Table(vectors);
-}
-
-export function constructStagedInsertSql(path: string, storedColumns: StoredColumn[]): string {
-    const selections = storedColumns.map((storedColumn, columnIndex) =>
-        storedColumn.dataTypeId === 'temporal' ? constructTemporalSql(columnName(columnIndex), storedColumn) : columnName(columnIndex)
-    );
-    return `INSERT INTO ${constructTableReference(path)} SELECT ${selections.join(', ')} FROM ${STAGING_TABLE}`;
 }
 
 export function constructStoreQuery(storedColumns: StoredColumn[], options: QueryRecordsOptions): StoreQuery {
@@ -198,63 +183,169 @@ export function resolveStoreTable(path: string): { databaseName: string | undefi
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-// A set bit in an Arrow validity bitmap marks a value that is present.
-function constructArrowVector(values: StoreValue[], storedColumn: StoredColumn): Vector {
-    const length = values.length;
-    const nullBitmap = new Uint8Array(Math.ceil(length / 8));
-    const presentValues: PresentValue[] = [];
-    for (const [index, value] of values.entries()) {
-        if (value == null || storedColumn.dataTypeId === 'unknown') continue;
-        setBit(nullBitmap, index);
-        presentValues.push({ index, value });
-    }
-    const nullCount = length - presentValues.length;
+// Builds one column of a chunk: takes each value that is present as the records are read, then gives the column as an
+// Arrow vector. A set bit in a validity bitmap marks a value that is present.
+interface ColumnBuilder {
+    finish: (nullCount: number) => Vector;
+    isWritten: (index: number, value: Exclude<StoreValue, null>) => boolean; // Writes the value and says whether it did.
+    nullBitmap: Uint8Array;
+    presentCount: number;
+}
 
+// Each record is read once and its values written into every column, because reading down one column at a time
+// visits each record once for every column, which is far slower over records held one by one.
+function constructArrowVectors(records: StoreRecord[], storedColumns: StoredColumn[]): Vector[] {
+    const { length } = records;
+    const builders = storedColumns.map((storedColumn) => constructColumnBuilder(storedColumn, length));
+    let index = 0;
+    for (const record of records) {
+        let columnIndex = 0;
+        for (const builder of builders) {
+            const value = record[columnIndex++];
+            if (value == null || !builder.isWritten(index, value)) continue;
+            setBit(builder.nullBitmap, index);
+            builder.presentCount++;
+        }
+        index++;
+    }
+    return builders.map((builder) => builder.finish(length - builder.presentCount));
+}
+
+// A column with no audited type has no values, so it takes none and is all null.
+function constructColumnBuilder(storedColumn: StoredColumn, length: number): ColumnBuilder {
+    const nullBitmap = new Uint8Array(Math.ceil(length / 8));
     switch (storedColumn.dataTypeId) {
         case 'boolean':
-            return makeVector(makeData({ data: constructBooleanData(presentValues, length), length, nullBitmap, nullCount, type: new Bool() }));
+            return constructBooleanBuilder(nullBitmap, length);
         case 'numeric':
-            return isWholeNumberColumn(storedColumn)
-                ? makeVector(makeData({ data: constructWholeNumberData(presentValues, length), length, nullBitmap, nullCount, type: new Int64() }))
-                : makeVector(makeData({ data: constructNumberData(presentValues, length), length, nullBitmap, nullCount, type: new Float64() }));
+            return isWholeNumberColumn(storedColumn) ? constructWholeNumberBuilder(nullBitmap, length) : constructNumberBuilder(nullBitmap, length);
         case 'temporal':
-            return makeVector(makeData({ data: constructNumberData(presentValues, length), length, nullBitmap, nullCount, type: new Float64() }));
+            return constructTemporalBuilder(nullBitmap, length, storedColumn);
         case 'string':
-        case 'unknown': {
-            const { data, valueOffsets } = constructTextData(presentValues, length);
-            return makeVector(makeData({ data, length, nullBitmap, nullCount, type: new Utf8(), valueOffsets }));
-        }
+            return constructTextBuilder(nullBitmap, length);
+        case 'unknown':
+            return {
+                finish: () => makeVector(makeData({ data: new Uint8Array(0), length, nullBitmap, nullCount: length, type: new Utf8(), valueOffsets: new Int32Array(length + 1) })),
+                isWritten: () => false,
+                nullBitmap,
+                presentCount: 0
+            };
     }
 }
 
-function constructBooleanData(presentValues: PresentValue[], length: number): Uint8Array {
+function constructBooleanBuilder(nullBitmap: Uint8Array, length: number): ColumnBuilder {
     const data = new Uint8Array(Math.ceil(length / 8));
-    for (const { index, value } of presentValues) if (value === true) setBit(data, index);
-    return data;
+    return {
+        finish: (nullCount) => makeVector(makeData({ data, length, nullBitmap, nullCount, type: new Bool() })),
+        isWritten: (index, value) => {
+            if (value === true) setBit(data, index);
+            return true;
+        },
+        nullBitmap,
+        presentCount: 0
+    };
 }
 
 // The engine only gives a column of whole numbers whole values within 64 bits, so each fits exactly.
-function constructWholeNumberData(presentValues: PresentValue[], length: number): BigInt64Array {
+function constructWholeNumberBuilder(nullBitmap: Uint8Array, length: number): ColumnBuilder {
     const data = new BigInt64Array(length);
-    for (const { index, value } of presentValues) data[index] = typeof value === 'bigint' ? value : BigInt(Number(value));
-    return data;
+    return {
+        finish: (nullCount) => makeVector(makeData({ data, length, nullBitmap, nullCount, type: new Int64() })),
+        isWritten: (index, value) => {
+            data[index] = typeof value === 'bigint' ? value : BigInt(Number(value));
+            return true;
+        },
+        nullBitmap,
+        presentCount: 0
+    };
 }
 
-function constructNumberData(presentValues: PresentValue[], length: number): Float64Array {
+function constructNumberBuilder(nullBitmap: Uint8Array, length: number): ColumnBuilder {
     const data = new Float64Array(length);
-    for (const { index, value } of presentValues) data[index] = value instanceof Date ? value.getTime() : Number(value);
-    return data;
+    return {
+        finish: (nullCount) => makeVector(makeData({ data, length, nullBitmap, nullCount, type: new Float64() })),
+        isWritten: (index, value) => {
+            data[index] = value instanceof Date ? value.getTime() : Number(value);
+            return true;
+        },
+        nullBitmap,
+        presentCount: 0
+    };
 }
 
-// Arrow text is one run of UTF-8 bytes, with offsets marking where each value starts.
-function constructTextData(presentValues: PresentValue[], length: number): { data: Uint8Array; valueOffsets: Int32Array } {
+// A date goes in as its day number, a time as the milliseconds of its day, and a date and time as milliseconds, each
+// in the Arrow type DuckDB takes straight into a DATE, TIME or TIMESTAMP column. A value that is not a moment in time
+// is left null.
+function constructTemporalBuilder(nullBitmap: Uint8Array, length: number, { dataSubtypeId }: StoredColumn): ColumnBuilder {
+    if (dataSubtypeId === 'date' || dataSubtypeId === 'time') {
+        const data = new Int32Array(length);
+        const isDate = dataSubtypeId === 'date';
+        return {
+            finish: (nullCount) =>
+                isDate ? makeVector(makeData({ data, length, nullBitmap, nullCount, type: new DateDay() })) : makeVector(makeData({ data, length, nullBitmap, nullCount, type: new TimeMillisecond() })),
+            isWritten: (index, value) => {
+                const milliseconds = Math.round(value instanceof Date ? value.getTime() : Number(value));
+                if (!Number.isFinite(milliseconds)) return false;
+                data[index] = isDate ? Math.floor(milliseconds / MILLISECONDS_PER_DAY) : ((milliseconds % MILLISECONDS_PER_DAY) + MILLISECONDS_PER_DAY) % MILLISECONDS_PER_DAY;
+                return true;
+            },
+            nullBitmap,
+            presentCount: 0
+        };
+    }
+    const data = new BigInt64Array(length);
+    return {
+        finish: (nullCount) => makeVector(makeData({ data, length, nullBitmap, nullCount, type: new TimestampMillisecond() })),
+        isWritten: (index, value) => {
+            const milliseconds = Math.round(value instanceof Date ? value.getTime() : Number(value));
+            if (!Number.isFinite(milliseconds)) return false;
+            data[index] = BigInt(milliseconds);
+            return true;
+        },
+        nullBitmap,
+        presentCount: 0
+    };
+}
+
+// Arrow text is one run of UTF-8 bytes, with offsets marking where each value starts. The run grows as text arrives,
+// and is written into directly. Text of plain ASCII, as most is, is copied a character at a time, which is quicker
+// than encoding each value on its own.
+function constructTextBuilder(nullBitmap: Uint8Array, length: number): ColumnBuilder {
     const encoder = new TextEncoder();
-    const encodedValues = new Map(presentValues.map(({ index, value }) => [index, encoder.encode(String(value))]));
     const valueOffsets = new Int32Array(length + 1);
-    for (let index = 0; index < length; index++) valueOffsets[index + 1] = (valueOffsets[index] ?? 0) + (encodedValues.get(index)?.length ?? 0);
-    const data = new Uint8Array(valueOffsets[length] ?? 0);
-    for (const [index, encodedValue] of encodedValues) data.set(encodedValue, valueOffsets[index]);
-    return { data, valueOffsets };
+    let data = new Uint8Array(length * INITIAL_BYTES_PER_TEXT);
+    let byteCount = 0;
+    return {
+        finish: (nullCount) => {
+            for (let index = 0; index < length; index++) valueOffsets[index + 1] = Math.max(valueOffsets[index + 1] ?? 0, valueOffsets[index] ?? 0); // A null takes no bytes, so it ends where the value before it ended.
+            return makeVector(makeData({ data: data.subarray(0, byteCount), length, nullBitmap, nullCount, type: new Utf8(), valueOffsets }));
+        },
+        isWritten: (index, value) => {
+            const text = typeof value === 'string' ? value : String(value);
+            const neededByteCount = byteCount + text.length * MAX_BYTES_PER_CHARACTER;
+            if (neededByteCount > data.length) {
+                const largerData = new Uint8Array(neededByteCount * 2);
+                largerData.set(data.subarray(0, byteCount));
+                data = largerData;
+            }
+            byteCount = writeText(data, byteCount, text, encoder);
+            valueOffsets[index + 1] = byteCount;
+            return true;
+        },
+        nullBitmap,
+        presentCount: 0
+    };
+}
+
+// Writes text at 'byteCount' and gives the count after it.
+function writeText(data: Uint8Array, byteCount: number, text: string, encoder: TextEncoder): number {
+    let nextByteCount = byteCount;
+    for (let index = 0; index < text.length; index++) {
+        const code = text.codePointAt(index) ?? 0;
+        if (code > MAX_ASCII_CODE) return byteCount + encoder.encodeInto(text, data.subarray(byteCount)).written;
+        data[nextByteCount++] = code;
+    }
+    return nextByteCount;
 }
 
 // Limits and offsets are written into the SQL, because DuckDB will not take a bound value for them.

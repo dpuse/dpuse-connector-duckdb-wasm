@@ -8,7 +8,7 @@ import { type Table, tableToIPC } from 'apache-arrow';
 import type { ObjectColumnConfig, QueryRecordsOptions, StoreRecord } from '@dpuse/dpuse-shared';
 
 // ── Local Framework
-import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoredColumns, constructStoreQuery } from '@/duckdbSql';
+import { constructArrowTable, constructCreateTableSql, constructStoredColumns, constructStoreQuery, resolveStoreTable } from '@/duckdbSql';
 import { constructRecordChunkSql, identifyColumnType, TABLE_COLUMNS_SQL } from '@/duckdbSql';
 import { constructTableReference, fromStoredValue, STAGING_TABLE, TABLE_COUNT_SQL, TABLE_NAMES_SQL } from '@/duckdbSql';
 
@@ -16,7 +16,7 @@ import { constructTableReference, fromStoredValue, STAGING_TABLE, TABLE_COUNT_SQ
 
 // The part of the package's Node build these tests use. It ships with no types of its own.
 interface Connection {
-    insertArrowFromIPCStream: (buffer: Uint8Array, options: { create: boolean; name: string }) => void;
+    insertArrowFromIPCStream: (buffer: Uint8Array, options: { create: boolean; name: string; schema?: string }) => void;
     prepare: (sql: string) => { close: () => void; query: (...values: unknown[]) => Table };
     query: (sql: string) => Table;
 }
@@ -180,7 +180,7 @@ describe('duckdbSql attached database round trip', () => {
         load([[1]], numberColumns, '/listed/returns');
         load([[1]], numberColumns, '/listed/invoices');
         load([[1]], numberColumns, 'shipments');
-        connection.query(`CREATE TABLE IF NOT EXISTS ${STAGING_TABLE} (c0 INTEGER)`); // As a load leaves it between chunks.
+        connection.query(`CREATE TABLE IF NOT EXISTS ${STAGING_TABLE} (c0 INTEGER)`); // As a load by an earlier version of the connector could leave it.
 
         expect(nameTables('listed')).toEqual(['invoices', 'returns']);
         expect(nameTables(null)).toContain('shipments');
@@ -247,9 +247,8 @@ function constructTemporalRecord(dayNumber: number, timeOfDay: number): StoreRec
 function load(records: StoreRecord[], storedColumns = STORED_COLUMNS, path = 'dates'): void {
     connection.query(`DROP TABLE IF EXISTS ${constructTableReference(path)}`);
     connection.query(constructCreateTableSql(path, storedColumns));
-    connection.insertArrowFromIPCStream(tableToIPC(constructArrowTable(records, storedColumns), 'stream'), { create: true, name: STAGING_TABLE });
-    connection.query(constructStagedInsertSql(path, storedColumns));
-    connection.query(`DROP TABLE ${STAGING_TABLE}`);
+    const { databaseName, tableName } = resolveStoreTable(path);
+    connection.insertArrowFromIPCStream(tableToIPC(constructArrowTable(records, storedColumns), 'stream'), { create: false, name: tableName, ...(databaseName != null && { schema: databaseName }) });
 }
 
 function countTables(tableName: string, databaseName: string | null): number {

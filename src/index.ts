@@ -48,7 +48,6 @@ import {
     constructCreateTableSql,
     constructLoadingTablePath,
     constructRecordChunkSql,
-    constructStagedInsertSql,
     constructStoredColumns,
     constructStoreQuery,
     constructTableReference,
@@ -60,7 +59,6 @@ import {
     quoteIdentifier,
     resolveBatchRecordCount,
     resolveStoreTable,
-    STAGING_TABLE,
     type StoredColumn,
     TABLE_COLUMNS_SQL,
     TABLE_COUNT_SQL,
@@ -226,14 +224,12 @@ export class Connector implements ConnectorInterface {
         try {
             await connection.query(`DROP TABLE IF EXISTS ${loadingTableReference}`); // Left by an earlier load of the object that never finished.
             await connection.query(constructCreateTableSql(loadingTablePath, storedColumns));
-            const stagedInsertSql = constructStagedInsertSql(loadingTablePath, storedColumns);
+            const insertOptions = { create: false, name: resolveStoreTable(loadingTablePath).tableName, ...(databaseName != null && { schema: databaseName }) }; // DuckDB names a table in another database by 'schema'.
             let uncommittedRecordCount = 0;
             await connection.query('BEGIN TRANSACTION');
             for await (const records of chunks) {
                 signal.throwIfAborted();
-                await connection.insertArrowTable(constructArrowTable(records, storedColumns), { create: true, name: STAGING_TABLE });
-                await connection.query(stagedInsertSql);
-                await connection.query(`DROP TABLE ${STAGING_TABLE}`);
+                await connection.insertArrowTable(constructArrowTable(records, storedColumns), insertOptions);
                 recordCount += records.length;
                 uncommittedRecordCount += records.length;
                 if (uncommittedRecordCount < batchRecordCount) continue;

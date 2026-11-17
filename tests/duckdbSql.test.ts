@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { QueryRecordsOptions } from '@dpuse/dpuse-shared';
 
 // ── Local Framework
-import { constructArrowTable, constructCreateTableSql, constructStagedInsertSql, constructStoreQuery } from '@/duckdbSql';
+import { constructArrowTable, constructCreateTableSql, constructStoreQuery } from '@/duckdbSql';
 import { constructLoadingTablePath, constructTableReference, fromStoredValue, resolveBatchRecordCount, type StoredColumn } from '@/duckdbSql';
 
 // ── Constants ────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -80,9 +80,17 @@ describe('constructArrowTable', () => {
     });
 });
 
-describe('constructStagedInsertSql', () => {
-    it('turns staged milliseconds back into the column’s date type', () => {
-        expect(constructStagedInsertSql('sales', STORED_COLUMNS)).toBe('INSERT INTO "sales" SELECT c0, c1, c2, CAST(epoch_ms(CAST(c3 AS BIGINT)) AS DATE), c4 FROM _dpuse_staging');
+describe('constructArrowTable text', () => {
+    it('keeps text of any length and script, with nulls between values', () => {
+        const longText = 'é😀 long '.repeat(500); // Far past the room a column of text starts with.
+        const texts = ['a', null, longText, '', null, 'z'];
+        const table = constructArrowTable(
+            texts.map((text) => [text]),
+            [{ dataSubtypeId: undefined, dataTypeId: 'string' }]
+        );
+
+        expect(texts.map((_, rowIndex): unknown => table.getChildAt(0)?.get(rowIndex))).toEqual(texts);
+        expect(table.getChildAt(0)?.nullCount).toBe(2);
     });
 });
 
