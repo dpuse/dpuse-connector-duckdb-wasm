@@ -61,7 +61,7 @@
         "test": "node -e \"import('@dpuse/dpuse-development').then(m => m.testProject())\""
     },
     "dependencies": {
-        "@dpuse/dpuse-shared": "^1.0.238",
+        "@dpuse/dpuse-shared": "^1.0.240",
         "@duckdb/duckdb-wasm": "1.33.1-dev110.0",
         "apache-arrow": "17.0.0"
     },

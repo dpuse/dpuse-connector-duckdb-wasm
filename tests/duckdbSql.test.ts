@@ -100,6 +100,25 @@ describe('constructArrowTable columns', () => {
     });
 });
 
+describe('constructArrowTable packed numbers', () => {
+    it('takes a packed block of decimal numbers as the column, and reads it value by value for any other column', () => {
+        const decimalColumns: StoredColumn[] = [{ dataSubtypeId: 'decimal', dataTypeId: 'numeric' }];
+        const numbers = [1.5, null, -2, null, 0, 1e300];
+        const packedColumn = { nullCount: 2, typeId: 'packedNumbers' as const, validity: new Uint8Array([0b11_0101]), values: new Float64Array([1.5, 0, -2, 0, 0, 1e300]) };
+        const recordTable = constructArrowTable(
+            numbers.map((value) => [value]),
+            decimalColumns
+        );
+
+        const packedTable = constructArrowTable({ columns: [packedColumn], recordCount: numbers.length }, decimalColumns);
+        const textTable = constructArrowTable({ columns: [packedColumn], recordCount: numbers.length }, [{ dataSubtypeId: undefined, dataTypeId: 'string' }]);
+
+        expect(describeRows(packedTable)).toEqual(describeRows(recordTable));
+        expect(packedTable.getChildAt(0)?.nullCount).toBe(2);
+        expect(numbers.map((_, rowIndex): unknown => textTable.getChildAt(0)?.get(rowIndex))).toEqual(['1.5', null, '-2', null, '0', '1e+300']);
+    });
+});
+
 describe('constructArrowTable text', () => {
     it('keeps text of any length and script, with nulls between values', () => {
         const longText = 'é😀 long '.repeat(500); // Far past the room a column of text starts with.

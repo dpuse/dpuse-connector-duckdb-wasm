@@ -4,7 +4,7 @@ import { Bool, DateDay, Float64, Int64, makeData, makeVector, Table, TimeMillise
 // ── DPUse Framework
 import { resolveStorePath } from '@dpuse/dpuse-shared';
 import type { DataSubtypeId, DataTypeId, ObjectColumnConfig, QueryAggregate, QueryFilter, QueryRecordsOptions, QuerySort, StoreRecord } from '@dpuse/dpuse-shared';
-import type { StoreChunk, StoreColumnChunk, StoreValue } from '@dpuse/dpuse-shared';
+import type { StoreChunk, StoreColumnChunk, StorePackedNumberColumn, StoreValue } from '@dpuse/dpuse-shared';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -213,11 +213,17 @@ function constructArrowVectors(records: StoreRecord[], storedColumns: StoredColu
     return builders.map((builder) => builder.finish(length - builder.presentCount));
 }
 
-// A chunk that came as columns needs no rearranging: each column's values are read down its own list.
+// A chunk that came as columns needs no rearranging: each column's values are read down its own list. A column of
+// decimal numbers that came as a packed block is already as Arrow keeps it, so the block is the column, with no value
+// read or copied.
 function constructArrowVectorsFromColumns({ columns, recordCount }: StoreColumnChunk, storedColumns: StoredColumn[]): Vector[] {
     return storedColumns.map((storedColumn, columnIndex) => {
+        const column = columns[columnIndex] ?? [];
+        if (!Array.isArray(column) && storedColumn.dataTypeId === 'numeric' && !isWholeNumberColumn(storedColumn)) {
+            return makeVector(makeData({ data: column.values, length: recordCount, nullBitmap: column.validity, nullCount: column.nullCount, type: new Float64() }));
+        }
+        const values = Array.isArray(column) ? column : Array.from({ length: recordCount }, (_, index) => readPackedNumber(column, index)); // A packed block for a column the store does not keep as decimal numbers, which the engine does not send.
         const builder = constructColumnBuilder(storedColumn, recordCount);
-        const values = columns[columnIndex] ?? [];
         for (let index = 0; index < recordCount; index++) {
             const value = values[index];
             if (value == null || !builder.isWritten(index, value)) continue;
@@ -226,6 +232,12 @@ function constructArrowVectorsFromColumns({ columns, recordCount }: StoreColumnC
         }
         return builder.finish(recordCount - builder.presentCount);
     });
+}
+
+// A packed number as a value, for a column the store does not keep as decimal numbers.
+function readPackedNumber({ validity, values }: StorePackedNumberColumn, index: number): number | null {
+    const isPresent = ((validity[Math.floor(index / 8)] ?? 0) & (1 << (index % 8))) !== 0;
+    return isPresent ? (values[index] ?? null) : null;
 }
 
 // A column with no audited type has no values, so it takes none and is all null.

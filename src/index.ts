@@ -112,7 +112,7 @@ const workerScriptURLPolicy = createWorkerScriptURLPolicy();
 export class Connector implements ConnectorInterface {
     private readonly connectorUtilities: ConnectorUtilities;
     private readonly toolConfigs;
-    readonly storeChunkLayoutId = 'columns'; // DuckDB keeps its data by column, so a load's chunks come as columns and need no rearranging.
+    readonly storeChunkLayoutId = 'packedColumns'; // DuckDB keeps its data by column, so a load's chunks come as columns and need no rearranging, with decimal numbers packed as Arrow keeps them.
     openStoreState: OpenStore | undefined;
     pendingCloseStore: Promise<void> | undefined;
     pendingOpenStore: Promise<OpenStoreResult> | undefined;
