@@ -776,7 +776,12 @@ importScripts(policy ? policy.createScriptURL(url) : url);`;
         await Promise.race([database.instantiate(new URL(WASM_FILE_NAME, import.meta.url).href), workerFailure.promise]);
         await database.open({ accessMode: DuckDBAccessMode.READ_WRITE, path: DATABASE_PATH, temporaryDirectory: TEMPORARY_DIRECTORY });
         const connection = await database.connect();
-        await connection.query(`SET memory_limit = '${resolveMemoryLimit()}'`);
+        const memoryLimit = resolveMemoryLimit();
+        await connection.query(`SET memory_limit = '${memoryLimit}'`);
+        // TODO: Remove once the limit has been checked on each kind of device. Logs the limit DuckDB reports back, which
+        // it words in its own units, beside the one asked for.
+        const memoryLimitTable = await connection.query("SELECT current_setting('memory_limit')");
+        console.info(`DuckDB memory limit: asked for ${memoryLimit}, DuckDB reports ${String(memoryLimitTable.getChildAt(0)?.get(0))}.`);
         await dropUnfinishedLoadingTables(connection, undefined); // No load has started yet, so any table a load was building is one that never finished.
         return { attachedDatabases: new Map(), connection, database };
     } catch (error) {

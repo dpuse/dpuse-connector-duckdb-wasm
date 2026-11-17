@@ -32,7 +32,10 @@ vi.mock('@duckdb/duckdb-wasm', () => ({
             Promise.resolve({
                 close: () => Promise.resolve(),
                 prepare: () => Promise.resolve({ close: () => Promise.resolve(), query: () => Promise.resolve({ numRows: 0 }) }), // The store starts with no unfinished loads.
-                query: queryDuckDB
+                query: (sql: string) => {
+                    void queryDuckDB(sql);
+                    return Promise.resolve({ getChildAt: () => ({ get: () => '244.1 MiB' }) }); // What DuckDB answers when asked for its memory limit.
+                }
             });
         instantiate = (): Promise<void> => Promise.resolve();
         open = openDuckDB;
