@@ -1,5 +1,5 @@
 {
-  "version": "1.0.148",
+  "version": "1.0.149",
   "name": "@dpuse/dpuse-connector-duckdb-wasm",
   "dependencies": {
     "@dpuse/dpuse-development": {
@@ -8,7 +8,7 @@
       "overridden": false,
       "dependencies": {
         "@dpuse/dpuse-shared": {
-          "version": "1.0.242"
+          "version": "1.0.243"
         },
         "license-checker-rseidelsohn": {
           "version": "5.0.1",
@@ -1194,8 +1194,8 @@
       }
     },
     "@dpuse/dpuse-shared": {
-      "version": "1.0.242",
-      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-shared/-/dpuse-shared-1.0.242.tgz",
+      "version": "1.0.243",
+      "resolved": "https://registry.npmjs.org/@dpuse/dpuse-shared/-/dpuse-shared-1.0.243.tgz",
       "overridden": false,
       "dependencies": {
         "file-type": {
