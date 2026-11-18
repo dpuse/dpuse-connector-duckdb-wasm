@@ -85,11 +85,11 @@ This repository is managed using the common set of actions provided by [@dpuse/d
 
 ## Dependency Licenses
 
-License data is updated each time `npm run document` is run, using [license-checker](https://github.com/RSeidelsohn/license-checker-rseidelsohn). The following table lists every package whose code, styles or assets are included in this project's build, as recorded by the build itself. Modules loaded at run time are not included; each documents its own. These dependencies have been checked and confirmed to use 0BSD, Apache-2.0, or MIT, all of which allow commercial use. All are used unmodified, so any licence conditions that apply only to modified versions are not triggered. Developers cloning this repository should independently verify development dependencies.
+License data is updated each time `npm run document` is run, using [CycloneDX](https://github.com/CycloneDX/cyclonedx-node-npm). The following table lists every package whose code, styles or assets are included in this project's build, as recorded by the build itself. Modules loaded at run time are not included; each documents its own. These dependencies have been checked and confirmed to use 0BSD, Apache-2.0, or MIT, all of which allow commercial use. All are used as published. Where the build has to adjust a dependency so it can be bundled, the adjustment only affects how its files are located and loaded, never what the code does. Developers cloning this repository should independently verify development dependencies.
 
 | Dependency                                                   |     Version     | License(s) | Document                                                                      |
 | :----------------------------------------------------------- | :-------------: | :--------- | :---------------------------------------------------------------------------- |
-| [@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared) |     1.0.244     | MIT        | [LICENSE](licenses/downloads/@dpuse/dpuse-shared@1.0.244-LICENSE.txt)         |
+| [@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared) |     1.0.245     | MIT        | [LICENSE](licenses/downloads/@dpuse/dpuse-shared@1.0.245-LICENSE.txt)         |
 | [@duckdb/duckdb-wasm](https://github.com/duckdb/duckdb-wasm) | 1.33.1-dev110.0 | MIT        | [LICENSE](licenses/downloads/@duckdb/duckdb-wasm@1.33.1-dev110.0-LICENSE.txt) |
 | [apache-arrow](https://github.com/apache/arrow)              |     17.0.0      | Apache-2.0 | [LICENSE](licenses/downloads/apache-arrow@17.0.0-LICENSE.txt)                 |
 | [flatbuffers](https://github.com/google/flatbuffers)         |    24.12.23     | Apache-2.0 | [LICENSE](licenses/downloads/flatbuffers@24.12.23-LICENSE.txt)                |
@@ -100,14 +100,13 @@ License data is updated each time `npm run document` is run, using [license-chec
 
 The dependency tree below shows how each package in the table above is reached — direct and transitive — along with its installed version, release date, and update status. A package that does not ship itself, such as one whose parts are bundled separately, is left out and what ships beneath it is shown in its place. Packages flagged ❗ have a newer version available; ⚠️ indicates a package that hasn't been updated in the last 6 months or longer. Neither flag necessarily indicates a problem: we let new releases stabilise before upgrading, and some packages are mature and stable (have limited or no dependencies), so they require no active development.
 
-- **[@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared)** 1.0.244 — this month: 2026-11-18
+- **[@dpuse/dpuse-shared](https://github.com/dpuse/dpuse-shared)** 1.0.245 — this month: 2026-11-18
     - **[valibot](https://github.com/open-circle/valibot)** 1.5.0 — 2 mths ago: 2026-09-09
-- **[@duckdb/duckdb-wasm](https://github.com/duckdb/duckdb-wasm)** 1.33.1-dev110.0 — this month: 2026-10-22 → latest: 1.33.1-dev57.0 — 4 mths ago: 2026-06-22 ❗
+- **[@duckdb/duckdb-wasm](https://github.com/duckdb/duckdb-wasm)** 1.33.1-dev110.0 — this month: 2026-10-22
     - **[apache-arrow](https://github.com/apache/arrow)** 17.0.0 — 28 mths ago: 2024-07-16 ⚠️ → latest: 21.2.0 — 3 mths ago: 2026-07-21 ❗
 - **[apache-arrow](https://github.com/apache/arrow)** 17.0.0 — 28 mths ago: 2024-07-16 ⚠️ → latest: 21.2.0 — 3 mths ago: 2026-07-21 ❗
     - **[tslib](https://github.com/Microsoft/tslib)** 2.8.1 — 24 mths ago: 2024-10-31 ⚠️ → latest: 2.9.1 — this month: 2026-10-30 ❗
     - **[flatbuffers](https://github.com/google/flatbuffers)** 24.12.23 — 22 mths ago: 2024-12-23 ⚠️ → latest: 25.9.23 — 13 mths ago: 2025-09-24 ⚠️ ❗
-    - **[tslib](https://github.com/Microsoft/tslib)** 2.8.1 — 24 mths ago: 2024-10-31 ⚠️ → latest: 2.9.1 — this month: 2026-10-30 ❗
 
 <!-- DEPENDENCY_LICENSES_END -->
 
@@ -123,7 +122,7 @@ _Note: Sonda's Vite reports currently exclude CSS files, since Vite does not gen
 | :-------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
 | **All 3 files**                                                       | 33.2&nbsp;MB&nbsp;·&nbsp;gzip&nbsp;8.3&nbsp;MB                                                 |
 | **dist/duckdb-base.wasm**                                             | 32.2&nbsp;MB&nbsp;·&nbsp;gzip&nbsp;8.1&nbsp;MB&nbsp;·&nbsp;96.9%&nbsp;of&nbsp;the&nbsp;build   |
-| **dist/duckdb-browser-base.worker.js**                                | 777.5&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;191.8&nbsp;kB&nbsp;·&nbsp;2.3%&nbsp;of&nbsp;the&nbsp;build |
+| **dist/duckdb-browser-base.worker.js**                                | 777.7&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;191.9&nbsp;kB&nbsp;·&nbsp;2.3%&nbsp;of&nbsp;the&nbsp;build |
 | **dist/dpuse-connector-duckdb-wasm.es.js**                            | 272.3&nbsp;kB&nbsp;·&nbsp;gzip&nbsp;58.4&nbsp;kB&nbsp;·&nbsp;0.8%&nbsp;of&nbsp;the&nbsp;build  |
 | &nbsp;&nbsp;&nbsp;&nbsp;apache-arrow → ipc/reader.mjs + 84 more       | `██████████████░░░░░░`&nbsp;67.7%&nbsp;·&nbsp;184.4&nbsp;kB                                    |
 | &nbsp;&nbsp;&nbsp;&nbsp;@duckdb/duckdb-wasm → dist/duckdb-browser.mjs | `██░░░░░░░░░░░░░░░░░░`&nbsp;9.0%&nbsp;·&nbsp;24.5&nbsp;kB                                      |

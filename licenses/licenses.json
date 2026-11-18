@@ -1,11 +1,10 @@
 {
-    "@dpuse/dpuse-shared@1.0.244": {
+    "@dpuse/dpuse-shared@1.0.245": {
         "licenses": "MIT",
         "repository": "https://github.com/dpuse/dpuse-shared",
         "publisher": "Jonathan Terrell",
-        "email": "terrell.jm@gmail.com",
         "path": "node_modules/@dpuse/dpuse-shared",
-        "licenseFile": "downloads/@dpuse/dpuse-shared@1.0.244-LICENSE.txt"
+        "licenseFile": "downloads/@dpuse/dpuse-shared@1.0.245-LICENSE.txt"
     },
     "@duckdb/duckdb-wasm@1.33.1-dev110.0": {
         "licenses": "MIT",
@@ -18,8 +17,7 @@
         "repository": "https://github.com/apache/arrow",
         "publisher": "Apache Software Foundation",
         "path": "node_modules/apache-arrow",
-        "licenseFile": "downloads/apache-arrow@17.0.0-LICENSE.txt",
-        "noticeFile": "node_modules/apache-arrow/NOTICE.txt"
+        "licenseFile": "downloads/apache-arrow@17.0.0-LICENSE.txt"
     },
     "flatbuffers@24.12.23": {
         "licenses": "Apache-2.0",

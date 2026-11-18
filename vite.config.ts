@@ -22,16 +22,19 @@ const WORKER_FILE_NAME = 'duckdb-browser-base.worker.js';
 
 // Ships DuckDB's '.wasm' file and worker script beside the connector's script, where the connector finds them. The
 // '.wasm' file is too large to inline, and a worker needs a script file of its own. The worker script names a source map
-// that DuckDB does not publish, so that comment is dropped, or Safari's Web Inspector logs a 404 for it.
+// that DuckDB does not publish, so that comment is dropped, or Safari's Web Inspector logs a 404 for it. The shipped
+// worker script opens with a notice saying so, as it is no longer the file DuckDB published.
 function shipDuckDBFiles(): Plugin {
     const duckdbDistributionPath = path.dirname(createRequire(import.meta.url).resolve('@duckdb/duckdb-wasm/dist/duckdb-base.wasm'));
+    const changeNotice =
+        "/*! The worker script of @duckdb/duckdb-wasm (MIT), changed by DPUse: its closing 'sourceMappingURL' comment is removed, as DuckDB publishes no source map for it. Nothing else is changed. */";
     return {
         name: 'ship-duckdb-files',
         writeBundle(options) {
             const outputPath = options.dir ?? 'dist';
             copyFileSync(path.join(duckdbDistributionPath, 'duckdb-base.wasm'), path.join(outputPath, 'duckdb-base.wasm'));
             const workerScript = readFileSync(path.join(duckdbDistributionPath, WORKER_FILE_NAME), 'utf-8'); // eslint-disable-line security/detect-non-literal-fs-filename -- DuckDB's own package folder.
-            writeFileSync(path.join(outputPath, WORKER_FILE_NAME), workerScript.replace(/\n\/\/# sourceMappingURL=\S+\s*$/u, '\n')); // eslint-disable-line security/detect-non-literal-fs-filename -- The build's own output folder.
+            writeFileSync(path.join(outputPath, WORKER_FILE_NAME), `${changeNotice}\n${workerScript.replace(/\n\/\/# sourceMappingURL=\S+\s*$/u, '\n')}`); // eslint-disable-line security/detect-non-literal-fs-filename -- The build's own output folder.
         }
     };
 }
