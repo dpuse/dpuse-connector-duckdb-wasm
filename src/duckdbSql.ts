@@ -121,11 +121,16 @@ export function fromStoredValue(value: unknown, storedColumn: StoredColumn | und
     return typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string' ? value : null;
 }
 
-// Reads one chunk of a table's records in rowid order, with each record's rowid first. A chunk starts after the last
-// rowid of the one before, so a chunk far into the table is found as quickly as the first.
-export function constructRecordChunkSql(path: string, chunkSize: number, hasAfterRowId: boolean): string {
-    const whereSql = hasAfterRowId ? ' WHERE rowid > CAST(? AS BIGINT)' : '';
-    return `SELECT rowid, * FROM ${constructTableReference(path)}${whereSql} ORDER BY rowid LIMIT ${String(checkCount(chunkSize))}`;
+// Reads every record of a table. DuckDB hands back a table's records in the order they were stored, so no order is asked
+// for, which would make it sort the whole table first.
+export function constructRecordsSql(path: string): string {
+    return `SELECT * FROM ${constructTableReference(path)}`;
+}
+
+// Reads a table's first records, in the order they were stored. Only the start of a table is read this way, because a
+// query for each later chunk has to search the table for where that chunk starts.
+export function constructRecordChunkSql(path: string, chunkSize: number): string {
+    return `${constructRecordsSql(path)} LIMIT ${String(checkCount(chunkSize))}`;
 }
 
 // The opposite of 'resolveColumnType'. Whole numbers of every size are kept as 'BIGINT', so a whole number column reads

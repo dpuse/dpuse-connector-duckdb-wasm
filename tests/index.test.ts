@@ -19,7 +19,7 @@ interface FakeTable {
 
 type FakeDatabases = Record<string, Record<string, FakeTable>>;
 
-type SqlValue = number | string | null; // The connector passes names as text, null for the default database, and a rowid as a number.
+type SqlValue = string | null; // The connector passes names as text, and null for the default database.
 
 // ── Mocks ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -354,8 +354,8 @@ describe('Connector', () => {
             expect(result).toEqual({ contentAuditConfig: expect.objectContaining({ columns: ['audited'], isComplete: true, recordCount: 3 }) as unknown, hasHeaders: false });
         });
 
-        it('stops when asked, keeping what it has audited', async () => {
-            const { connector } = constructFakeConnector({ default: { amounts: numberTable([[1], [2], [3]]) } });
+        it('stops when asked, keeping what it has audited and closing the connection it read on', async () => {
+            const { closeReadConnection, connector } = constructFakeConnector({ default: { amounts: numberTable([[1], [2], [3]]) } });
             const stopController = new AbortController();
             stopController.abort();
 
@@ -365,25 +365,37 @@ describe('Connector', () => {
             );
 
             expect(result.contentAuditConfig).toEqual(expect.objectContaining({ isComplete: false, recordCount: 0 }));
+            expect(closeReadConnection).toHaveBeenCalledOnce();
         });
     });
 
     describe('retrieveRecords', () => {
         it('hands over every record typed, a chunk at a time, then the count', async () => {
-            const { connector } = constructFakeConnector({ default: {}, sales: { amounts: numberTable([[1], [2], [3]]) } });
+            const { closeReadConnection, connector } = constructFakeConnector({ default: {}, sales: { amounts: numberTable([[1], [2], [3], [4], [5]]) } });
 
             const { chunks, summary } = await collectRetrieval(connector.retrieveRecords({ ...READ_OPTIONS, path: '/sales/amounts' }));
 
-            expect(chunks).toEqual([[[1], [2]], [[3]]]);
-            expect(summary).toEqual({ recordCount: 3 });
+            expect(chunks).toEqual([[[1], [2]], [[3], [4]], [[5]]]);
+            expect(summary).toEqual({ recordCount: 5 });
+            expect(closeReadConnection).toHaveBeenCalledOnce();
         });
 
-        it('stops when its request is aborted', async () => {
-            const { connector } = constructFakeConnector({ default: { amounts: numberTable([[1], [2], [3]]) } });
+        it('hands over nothing for an empty table', async () => {
+            const { connector } = constructFakeConnector({ default: { amounts: numberTable([]) } });
+
+            const { chunks, summary } = await collectRetrieval(connector.retrieveRecords({ ...READ_OPTIONS, path: 'amounts' }));
+
+            expect(chunks).toEqual([]);
+            expect(summary).toEqual({ recordCount: 0 });
+        });
+
+        it('stops when its request is aborted, closing the connection it read on', async () => {
+            const { closeReadConnection, connector } = constructFakeConnector({ default: { amounts: numberTable([[1], [2], [3]]) } });
             const abortController = new AbortController();
             abortController.abort(new Error('Aborted.'));
 
             await expect(collectRetrieval(connector.retrieveRecords({ ...READ_OPTIONS, path: 'amounts', signal: abortController.signal }))).rejects.toThrow('Aborted.');
+            expect(closeReadConnection).toHaveBeenCalledOnce();
         });
     });
 });
@@ -433,12 +445,15 @@ function constructFakeFolder(path: string, childFolders: Map<string, unknown>, r
 // stands in for it. Each database's file is listed as DuckDB lists it.
 function constructFakeConnector(databases: FakeDatabases): {
     auditRecords: ReturnType<typeof vi.fn>;
+    closeReadConnection: ReturnType<typeof vi.fn>;
     connector: Connector;
     constructColumnAuditor: ReturnType<typeof vi.fn>;
     inferDataTypes: ReturnType<typeof vi.fn>;
     registerOPFSFileName: ReturnType<typeof vi.fn>;
 } {
     const registerOPFSFileName = vi.fn(() => Promise.resolve());
+    const closeReadConnection = vi.fn(() => Promise.resolve());
+    const connect = (): Promise<unknown> => Promise.resolve({ close: closeReadConnection, send: (sql: string) => Promise.resolve(answerRead(databases, sql)) });
     const connection = {
         prepare: (sql: string) => Promise.resolve({ close: () => Promise.resolve(), query: (...values: SqlValue[]) => Promise.resolve(answerSql(databases, sql, values)) }),
         query: () => Promise.resolve()
@@ -447,8 +462,26 @@ function constructFakeConnector(databases: FakeDatabases): {
     const constructColumnAuditor = vi.fn(() => ({ auditRecords, completeAudit: () => ({ columnConfigs: ['audited'], hasHeaders: false }) }));
     const inferDataTypes = vi.fn(() => ({ columnConfigs: ['inferred'], hasHeaders: false }));
     const connector = new Connector({ constructColumnAuditor, inferDataTypes } as unknown as ConnectorUtilities, []);
-    connector.openStoreState = { attachedDatabases: new Map(), connection, database: { registerOPFSFileName } } as never;
-    return { auditRecords, connector, constructColumnAuditor, inferDataTypes, registerOPFSFileName };
+    connector.openStoreState = { attachedDatabases: new Map(), connection, database: { connect, registerOPFSFileName } } as never;
+    return { auditRecords, closeReadConnection, connector, constructColumnAuditor, inferDataTypes, registerOPFSFileName };
+}
+
+// Answers a read of a whole table as DuckDB does, a batch at a time. A batch holds one record, so a chunk of two is
+// made up from more than one batch.
+async function* answerRead(databases: FakeDatabases, sql: string): AsyncGenerator<{ getChildAt: (columnIndex: number) => { get: (rowIndex: number) => unknown }; numRows: number }> {
+    const rows = findTable(databases, sql)?.rows ?? [];
+    for (const row of rows) {
+        await Promise.resolve();
+        yield { getChildAt: (columnIndex) => ({ get: () => row[columnIndex] }), numRows: 1 };
+    }
+}
+
+// The table a query reads, named after 'FROM' with or without its database.
+function findTable(databases: FakeDatabases, sql: string): FakeTable | undefined {
+    const tableReference = sql.split(' FROM ', 2)[1]?.split(' ', 1)[0] ?? '';
+    const names = tableReference.split('.').map((quotedName) => quotedName.slice(1, -1));
+    const [databaseName = '', tableName = ''] = names.length === 2 ? names : ['default', names[0]];
+    return databases[databaseName]?.[tableName];
 }
 
 // Answers in the shape of an Arrow table, which is all the connector reads.
@@ -461,14 +494,10 @@ function selectRows(databases: FakeDatabases, sql: string, values: SqlValue[]): 
     if (sql === DATABASE_FILES_SQL) return Object.keys(databases).map((databaseName) => [`opfs://${databaseName}.duckdb`]);
     if (sql === TABLE_NAMES_SQL) return Object.keys(databases[values[0] ?? 'default'] ?? {}).map((tableName) => [tableName]);
     if (sql === TABLE_COLUMNS_SQL) return databases[values[1] ?? 'default']?.[values[0] ?? '']?.columns ?? [];
-    const tableReference = sql.split(' FROM ', 2)[1]?.split(' ', 1)[0] ?? '';
-    const names = tableReference.split('.').map((quotedName) => quotedName.slice(1, -1));
-    const [databaseName = '', tableName = ''] = names.length === 2 ? names : ['default', names[0]];
-    const rows = databases[databaseName]?.[tableName]?.rows ?? [];
+    const rows = findTable(databases, sql)?.rows ?? [];
     if (sql.startsWith('SELECT count(*)')) return [[BigInt(rows.length)]];
-    const afterRowId = Number(values[0] ?? 0);
     const limit = Number(/LIMIT (\d+)/u.exec(sql)?.[1]);
-    return rows.map((row, rowIndex) => [BigInt(rowIndex + 1), ...row]).filter(([rowId]) => Number(rowId) > afterRowId).slice(0, limit);
+    return rows.slice(0, limit);
 }
 
 // Whole numbers come back from DuckDB as bigints.

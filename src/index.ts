@@ -49,6 +49,7 @@ import {
     constructCreateTableSql,
     constructLoadingTablePath,
     constructRecordChunkSql,
+    constructRecordsSql,
     constructStoredColumns,
     constructStoreQuery,
     constructTableReference,
@@ -286,7 +287,7 @@ export class Connector implements ConnectorInterface {
             const startedAt = performance.now();
             const openStore = await this.openStoreForReading();
             const sourceTable = await establishSourceTable(openStore, options.path);
-            const { records } = await readRecordChunk(openStore, sourceTable, PREVIEW_RECORD_COUNT, undefined);
+            const records = await readRecordChunk(openStore, sourceTable, PREVIEW_RECORD_COUNT);
             const countTable = await runStatement(openStore.connection, `SELECT count(*) FROM ${constructTableReference(options.path)}`, []);
             const totalCount = Number(countTable.getChildAt(0)?.get(0) ?? 0);
             const parsedRecords = records.map((record) => convertStoreRecordToParsedRecord(record));
@@ -680,30 +681,33 @@ async function listTopNodes(openStore: OpenStore): Promise<ConnectionNodeConfig[
     return folderNodeConfigs;
 }
 
-// Each record comes after its rowid, which marks where the next chunk starts.
-async function readRecordChunk(
-    openStore: OpenStore,
-    sourceTable: SourceTable,
-    chunkSize: number,
-    afterRowId: number | undefined
-): Promise<{ lastRowId: number | undefined; records: StoreRecord[] }> {
-    const storedColumns = constructStoredColumns(sourceTable.columnConfigs);
-    const table = await runStatement(openStore.connection, constructRecordChunkSql(sourceTable.path, chunkSize, afterRowId != null), afterRowId == null ? [] : [afterRowId]);
-    const records = Array.from({ length: table.numRows }, (_unused, rowIndex) =>
-        storedColumns.map((storedColumn, columnIndex) => fromStoredValue(table.getChildAt(columnIndex + 1)?.get(rowIndex), storedColumn))
-    );
-    const lastRowId: unknown = table.numRows > 0 ? table.getChildAt(0)?.get(table.numRows - 1) : undefined;
-    return { lastRowId: lastRowId == null ? undefined : Number(lastRowId), records };
+// A table's first records, for a preview.
+async function readRecordChunk(openStore: OpenStore, sourceTable: SourceTable, chunkSize: number): Promise<StoreRecord[]> {
+    const table = await runStatement(openStore.connection, constructRecordChunkSql(sourceTable.path, chunkSize), []);
+    return readRecords(table, constructStoredColumns(sourceTable.columnConfigs));
 }
 
-// Every record of a table, a chunk at a time, ending with the first chunk that is not full.
+// Every record of a table, a chunk at a time, from one query read as DuckDB produces it. A query for each chunk made
+// DuckDB search the rest of the table every time, so a table six times the size took 55 times as long to read. The read
+// has a connection of its own, because any other query on a connection ends a read in progress there, without an error.
+// On its own connection the read finishes even while the store loads, or drops the table being read.
 async function* readRecordChunks(openStore: OpenStore, sourceTable: SourceTable, chunkSize: number): AsyncGenerator<StoreRecord[]> {
-    let afterRowId: number | undefined;
-    for (;;) {
-        const { lastRowId, records } = await readRecordChunk(openStore, sourceTable, chunkSize, afterRowId);
+    const storedColumns = constructStoredColumns(sourceTable.columnConfigs);
+    const connection = await openStore.database.connect();
+    try {
+        const batches = await connection.send(constructRecordsSql(sourceTable.path));
+        let records: StoreRecord[] = [];
+        for await (const batch of batches) {
+            for (let rowIndex = 0; rowIndex < batch.numRows; rowIndex++) {
+                records.push(storedColumns.map((storedColumn, columnIndex) => fromStoredValue(batch.getChildAt(columnIndex)?.get(rowIndex), storedColumn)));
+                if (records.length < chunkSize) continue;
+                yield records;
+                records = [];
+            }
+        }
         if (records.length > 0) yield records;
-        if (lastRowId == null || records.length < chunkSize) return;
-        afterRowId = lastRowId;
+    } finally {
+        await connection.close(); // Also when the reader stops early, which ends the query.
     }
 }
 

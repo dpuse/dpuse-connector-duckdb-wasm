@@ -9,7 +9,7 @@ import type { ObjectColumnConfig, QueryRecordsOptions, StoreRecord } from '@dpus
 
 // ── Local Framework
 import { constructArrowTable, constructCreateTableSql, constructStoredColumns, constructStoreQuery, resolveStoreTable } from '@/duckdbSql';
-import { constructRecordChunkSql, identifyColumnType, TABLE_COLUMNS_SQL } from '@/duckdbSql';
+import { constructRecordChunkSql, constructRecordsSql, identifyColumnType, TABLE_COLUMNS_SQL } from '@/duckdbSql';
 import { constructTableReference, fromStoredValue, STAGING_TABLE, TABLE_COUNT_SQL, TABLE_NAMES_SQL } from '@/duckdbSql';
 
 // ── Types ────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -212,15 +212,28 @@ describe('duckdbSql source reading round trip', () => {
         expect(columnTypes).toEqual(columnConfigs.map(({ dataSubtypeId, dataTypeId }) => ({ dataSubtypeId, dataTypeId })));
     });
 
-    it('reads a table a chunk at a time in the order it was loaded, in the default database or another', () => {
+    it("reads a table's first records in the order it was loaded, in the default database or another", () => {
         const numberColumns = constructStoredColumns([{ dataSubtypeId: 'integer', dataTypeId: 'numeric' }] as ObjectColumnConfig[]);
         connection.query('ATTACH IF NOT EXISTS \':memory:\' AS "chunked"');
-        load([[1], [2], [3]], numberColumns, 'chunked');
-        load([[4], [5], [6]], numberColumns, '/chunked/values');
+        load([[3], [1], [2]], numberColumns, 'chunked');
+        load([[6], [4], [5]], numberColumns, '/chunked/values');
 
-        expect(readChunks('chunked')).toEqual([[1, 2], [3]]);
-        expect(readChunks('/chunked/values')).toEqual([[4, 5], [6]]);
-        expect(readChunks('/default/chunked')).toEqual(readChunks('chunked'));
+        expect(readChunk('chunked', 2)).toEqual([3, 1]);
+        expect(readChunk('chunked', 5)).toEqual([3, 1, 2]);
+        expect(readChunk('/chunked/values', 2)).toEqual([6, 4]);
+        expect(readChunk('/default/chunked', 2)).toEqual(readChunk('chunked', 2));
+    });
+
+    it('reads every record of a table in the order it was loaded, in the default database or another', () => {
+        const numberColumns = constructStoredColumns([{ dataSubtypeId: 'integer', dataTypeId: 'numeric' }] as ObjectColumnConfig[]);
+        const values = Array.from({ length: 5000 }, (_value, index) => [(index * 7919) % 5000]); // Not in order of value, so a sort would show.
+        connection.query('ATTACH IF NOT EXISTS \':memory:\' AS "whole"');
+        load(values, numberColumns, 'whole');
+        load(values.slice(0, 3), numberColumns, '/whole/values');
+
+        expect(readRecords('whole')).toEqual(values.flat());
+        expect(readRecords('/whole/values')).toEqual(values.slice(0, 3).flat());
+        expect(readRecords('/default/whole')).toEqual(readRecords('whole'));
     });
 });
 
@@ -258,19 +271,16 @@ function countTables(tableName: string, databaseName: string | null): number {
     return Number(table.getChildAt(0)?.get(0));
 }
 
-// Reads the values of a one-column table two records at a time, each chunk starting after the last rowid of the one
-// before.
-function readChunks(path: string): unknown[][] {
-    const chunks: unknown[][] = [];
-    let afterRowId: number | undefined;
-    for (;;) {
-        const statement = connection.prepare(constructRecordChunkSql(path, 2, afterRowId != null));
-        const table = afterRowId == null ? statement.query() : statement.query(afterRowId);
-        statement.close();
-        if (table.numRows === 0) return chunks;
-        chunks.push(Array.from({ length: table.numRows }, (_value, rowIndex) => Number(table.getChildAt(1)?.get(rowIndex))));
-        afterRowId = Number(table.getChildAt(0)?.get(table.numRows - 1));
-    }
+// Reads the first values of a one-column table.
+function readChunk(path: string, chunkSize: number): number[] {
+    const table = connection.query(constructRecordChunkSql(path, chunkSize));
+    return Array.from({ length: table.numRows }, (_value, rowIndex) => Number(table.getChildAt(0)?.get(rowIndex)));
+}
+
+// Reads the values of a one-column table with the query that reads every record.
+function readRecords(path: string): number[] {
+    const table = connection.query(constructRecordsSql(path));
+    return Array.from({ length: table.numRows }, (_value, rowIndex) => Number(table.getChildAt(0)?.get(rowIndex)));
 }
 
 function nameTables(databaseName: string | null): string[] {
