@@ -380,6 +380,18 @@ describe('Connector', () => {
             expect(closeReadConnection).toHaveBeenCalledOnce();
         });
 
+        it("gives the table's total record count with every chunk, counted before the read", async () => {
+            const { connector } = constructFakeConnector({ default: { amounts: numberTable([[1], [2], [3]]) } });
+            const retrieval = connector.retrieveRecords({ ...READ_OPTIONS, path: 'amounts' });
+
+            const first = await retrieval.next();
+            const second = await retrieval.next();
+            await retrieval.return({ recordCount: 0 });
+
+            expect(first.value).toEqual({ records: [[1], [2]], totalRecordCount: 3, typeId: 'storeRecordArray' });
+            expect(second.value).toEqual({ records: [[3]], totalRecordCount: 3, typeId: 'storeRecordArray' });
+        });
+
         it('hands over nothing for an empty table', async () => {
             const { connector } = constructFakeConnector({ default: { amounts: numberTable([]) } });
 

@@ -326,17 +326,20 @@ export class Connector implements ConnectorInterface {
         }
     }
 
-    // Hands over each chunk typed, as the store holds it. Nothing more is read until the next chunk is asked for.
+    // Hands over each chunk typed, as the store holds it. Nothing more is read until the next chunk is asked for. The
+    // table's records are counted first and the total goes with every chunk, so a load can show how far it has got.
     async *retrieveRecords(options: RetrieveRecordsOptions): AsyncGenerator<RetrieveRecordsChunk, RetrieveRecordsSummary, undefined> {
         const signal = resolveRequestSignal(options);
         try {
             const openStore = await this.openStoreForReading();
             const sourceTable = await establishSourceTable(openStore, options.path);
+            const countTable = await runStatement(openStore.connection, `SELECT count(*) FROM ${constructTableReference(options.path)}`, []);
+            const totalRecordCount = Number(countTable.getChildAt(0)?.get(0) ?? 0);
             let recordCount = 0;
             const recordChunks = readRecordChunks(openStore, sourceTable, options.chunkSize ?? DEFAULT_CHUNK_SIZE);
             for await (const records of recordChunks) {
                 signal.throwIfAborted();
-                yield { records, typeId: 'storeRecordArray' };
+                yield { records, totalRecordCount, typeId: 'storeRecordArray' };
                 recordCount += records.length;
             }
             return { recordCount };
