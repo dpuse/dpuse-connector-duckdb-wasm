@@ -113,7 +113,6 @@ export function constructStoreQuery(storedColumns: StoredColumn[], options: Quer
 // Dates and timestamps come back from Arrow as milliseconds since 1970, times as bigint microseconds since midnight, and
 // whole numbers and counts as bigints. A column of whole numbers beyond ±2^53 keeps its bigints, so no digit is lost.
 // Other whole numbers become plain numbers, unless one is too large to be exact.
-// eslint-disable-next-line sonarjs/function-return-type -- A store value is one of several types, by its column.
 export function fromStoredValue(value: unknown, storedColumn: StoredColumn | undefined): StoreValue {
     if (value == null) return null;
     if (storedColumn?.dataTypeId === 'temporal') return new Date(typeof value === 'bigint' ? Number(value) / MICROSECONDS_PER_MILLISECOND : Number(value));
@@ -527,7 +526,6 @@ function isWholeNumberColumn(storedColumn: StoredColumn): boolean {
     return storedColumn.dataSubtypeId === 'integer' || storedColumn.dataSubtypeId === 'bigint';
 }
 
-// eslint-disable-next-line sonarjs/function-return-type -- A bound value is one of several types, by its column.
 function toQueryValue(value: StoreValue): QueryValue {
     if (value instanceof Date) return value.getTime();
     return typeof value === 'bigint' ? String(value) : value;

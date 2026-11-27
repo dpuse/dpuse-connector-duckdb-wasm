@@ -33,8 +33,8 @@ function shipDuckDBFiles(): Plugin {
         writeBundle(options) {
             const outputPath = options.dir ?? 'dist';
             copyFileSync(path.join(duckdbDistributionPath, 'duckdb-base.wasm'), path.join(outputPath, 'duckdb-base.wasm'));
-            const workerScript = readFileSync(path.join(duckdbDistributionPath, WORKER_FILE_NAME), 'utf-8'); // eslint-disable-line security/detect-non-literal-fs-filename -- DuckDB's own package folder.
-            writeFileSync(path.join(outputPath, WORKER_FILE_NAME), `${changeNotice}\n${workerScript.replace(/\n\/\/# sourceMappingURL=\S+\s*$/u, '\n')}`); // eslint-disable-line security/detect-non-literal-fs-filename -- The build's own output folder.
+            const workerScript = readFileSync(path.join(duckdbDistributionPath, WORKER_FILE_NAME), 'utf-8');
+            writeFileSync(path.join(outputPath, WORKER_FILE_NAME), `${changeNotice}\n${workerScript.replace(/\n\/\/# sourceMappingURL=\S+\s*$/u, '\n')}`);
         }
     };
 }

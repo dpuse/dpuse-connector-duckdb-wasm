@@ -297,9 +297,10 @@ export class Connector implements ConnectorInterface {
             const countTable = await runStatement(openStore.connection, `SELECT count(*) FROM ${constructTableReference(options.path)}`, []);
             const totalCount = Number(countTable.getChildAt(0)?.get(0) ?? 0);
             const parsedRecords = records.map((record) => convertStoreRecordToParsedRecord(record));
-            const { columnConfigs } = this.connectorUtilities.inferDataTypes(parsedRecords, false, constructDeclaredColumnConfigs(sourceTable.columnConfigs));
+            const isComplete = records.length === totalCount;
+            const { columnConfigs } = this.connectorUtilities.inferDataTypes(parsedRecords, false, constructDeclaredColumnConfigs(sourceTable.columnConfigs), isComplete);
             return {
-                contentAuditConfig: constructContentAuditConfig(asAt, startedAt, columnConfigs, records.length, records.length === totalCount),
+                contentAuditConfig: constructContentAuditConfig(asAt, startedAt, columnConfigs, records.length, isComplete),
                 readingConfig: constructReadingConfig(),
                 sampleConfig: { hasHeaders: false, issues: [], parsedRecords, size: undefined, text: undefined }
             };
